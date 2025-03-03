@@ -417,7 +417,7 @@ document.addEventListener('keypress', (e) => {
     }
 });
 
-// Add keyboard controls for player movement
+// Modify the keydown event listener to include spacebar
 document.addEventListener('keydown', (e) => {
     switch(e.key) {
         case 'ArrowUp':
@@ -431,6 +431,9 @@ document.addEventListener('keydown', (e) => {
             break;
         case 'ArrowRight':
             player.move(1, 0);
+            break;
+        case ' ': // Spacebar
+            fireBullet();
             break;
     }
 });
