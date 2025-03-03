@@ -67,6 +67,7 @@ class Bullet {
         this.x = cellSize / 2;
         this.y = 0;
         this.radius = 4;
+        this.speed = 2;
         
         // Possible angles: 30, 45, or 60 degrees (converted to radians)
         const possibleAngles = [Math.PI/6, Math.PI/4, Math.PI/3]; // 30°, 45°, 60°
@@ -75,7 +76,6 @@ class Bullet {
         // Randomly choose left or right direction
         this.direction = Math.random() < 0.5 ? randomAngle : (Math.PI - randomAngle);
         
-        this.speed = 2;
         this.dx = Math.cos(this.direction) * this.speed;
         this.dy = Math.sin(this.direction) * this.speed;
     }
@@ -227,4 +227,26 @@ document.addEventListener('keypress', (e) => {
     if (e.key === 'r' || e.key === 'R') {
         bullet = new Bullet();
     }
-}); 
+});
+
+// Replace the existing adjustSpeed and adjustRadius functions with these:
+function adjustSpeed(newSpeed) {
+    // Convert string to number and clamp between limits
+    newSpeed = Math.max(0.5, Math.min(5, Number(newSpeed)));
+    
+    // Update bullet speed and velocity components while maintaining direction
+    bullet.speed = newSpeed;
+    const angle = Math.atan2(bullet.dy, bullet.dx);
+    bullet.dx = Math.cos(angle) * newSpeed;
+    bullet.dy = Math.sin(angle) * newSpeed;
+    
+    // Update display
+    document.getElementById('speedValue').textContent = newSpeed.toFixed(1);
+}
+
+function adjustRadius(newRadius) {
+    // Convert string to number and clamp between limits
+    newRadius = Math.max(2, Math.min(8, Number(newRadius)));
+    bullet.radius = newRadius;
+    document.getElementById('radiusValue').textContent = newRadius.toFixed(0);
+} 
