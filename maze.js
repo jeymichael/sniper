@@ -2,8 +2,8 @@ const canvas = document.getElementById('mazeCanvas');
 const ctx = canvas.getContext('2d');
 
 // Set canvas size
-canvas.width = 400;
-canvas.height = 400;
+canvas.width = 200;
+canvas.height = 200;
 
 // Maze configuration
 const cellSize = 20;
@@ -363,15 +363,9 @@ function drawMaze() {
     animationId = requestAnimationFrame(drawMaze);
 }
 
-// Modify the checkBulletExit function to check for top exit instead of bottom
+// Modify the checkBulletExit function to simply remove exited bullets
 function checkBulletExit() {
-    bullets.forEach((bullet, index) => {
-        if (bullet.y < 0) {  // Check if bullet has gone above the top
-            // Reset bullet if it exits through top
-            const newBullet = new Bullet(player.x, player.y, firstBulletDirection);
-            bullets[index] = newBullet;
-        }
-    });
+    bullets = bullets.filter(bullet => bullet.y >= 0);
 }
 
 // Modify the adjustSpeed function
