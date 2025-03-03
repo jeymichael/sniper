@@ -60,11 +60,13 @@ class Cell {
     }
 }
 
-// Add this class after the Cell class and before the Bullet class
+// Modify the Settings class
 class Settings {
     constructor() {
         this.bulletRadius = 3;
         this.bulletSpeed = 2;
+        this.playerRadius = 5;  // Add player radius
+        this.playerSpeed = 5;   // Add player speed
     }
 
     static getInstance() {
@@ -152,6 +154,111 @@ const BULLET_SPACING = 25;
 const MAX_BULLETS = 100;
 let animationId;
 let firstBulletDirection; // Store the direction of the first bullet
+
+// Modify the Player class constructor
+class Player {
+    constructor() {
+        // Start at the center of entrance cell (bottom-right)
+        this.x = canvas.width - cellSize/2;
+        this.y = canvas.height - cellSize/2;
+        
+        // Get settings from singleton
+        const settings = Settings.getInstance();
+        this.radius = settings.playerRadius;
+        this.moveSpeed = settings.playerSpeed;
+        this.color = '#00ff00';
+    }
+
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    // Check if a move would result in wall collision
+    canMove(newX, newY) {
+        // Calculate the bounds of the player's circle
+        const bounds = {
+            left: newX - this.radius,
+            right: newX + this.radius,
+            top: newY - this.radius,
+            bottom: newY + this.radius
+        };
+
+        // Get cells that the player's circle intersects with
+        const cells = {
+            topLeft: {
+                col: Math.floor(bounds.left / cellSize),
+                row: Math.floor(bounds.top / cellSize)
+            },
+            topRight: {
+                col: Math.floor(bounds.right / cellSize),
+                row: Math.floor(bounds.top / cellSize)
+            },
+            bottomLeft: {
+                col: Math.floor(bounds.left / cellSize),
+                row: Math.floor(bounds.bottom / cellSize)
+            },
+            bottomRight: {
+                col: Math.floor(bounds.right / cellSize),
+                row: Math.floor(bounds.bottom / cellSize)
+            }
+        };
+
+        // Check if any part of the player would be outside the maze
+        if (bounds.left < 0 || bounds.right > canvas.width ||
+            bounds.top < 0 || bounds.bottom > canvas.height) {
+            return false;
+        }
+
+        // Check each cell the player's circle intersects with
+        for (const cell of Object.values(cells)) {
+            // Skip if cell coordinates are outside the grid
+            if (cell.row < 0 || cell.row >= rows || cell.col < 0 || cell.col >= cols) {
+                continue;
+            }
+
+            const currentCell = grid[cell.row][cell.col];
+            const relativeX = newX - (cell.col * cellSize);
+            const relativeY = newY - (cell.row * cellSize);
+
+            // Check collision with walls
+            if (currentCell.walls.top && 
+                Math.abs(relativeY - 0) <= this.radius) {
+                return false;
+            }
+            if (currentCell.walls.bottom && 
+                Math.abs(relativeY - cellSize) <= this.radius) {
+                return false;
+            }
+            if (currentCell.walls.left && 
+                Math.abs(relativeX - 0) <= this.radius) {
+                return false;
+            }
+            if (currentCell.walls.right && 
+                Math.abs(relativeX - cellSize) <= this.radius) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    move(dx, dy) {
+        const newX = this.x + dx * this.moveSpeed;
+        const newY = this.y + dy * this.moveSpeed;
+
+        if (this.canMove(newX, newY)) {
+            this.x = newX;
+            this.y = newY;
+        }
+    }
+}
+
+// Add to global variables
+let player = new Player();
 
 // Initialize grid
 function setupGrid() {
@@ -243,6 +350,9 @@ function drawMaze() {
         }
     }
     
+    // Draw player
+    player.draw();
+    
     // Draw and update all bullets
     bullets.forEach(bullet => {
         bullet.draw();
@@ -307,11 +417,30 @@ document.addEventListener('keypress', (e) => {
     }
 });
 
+// Add keyboard controls for player movement
+document.addEventListener('keydown', (e) => {
+    switch(e.key) {
+        case 'ArrowUp':
+            player.move(0, -1);
+            break;
+        case 'ArrowDown':
+            player.move(0, 1);
+            break;
+        case 'ArrowLeft':
+            player.move(-1, 0);
+            break;
+        case 'ArrowRight':
+            player.move(1, 0);
+            break;
+    }
+});
+
 // Replace the initialization lines with:
 setupGrid();
 generateMaze();
 createEntranceAndExit();
-bullets = []; // Start with empty array
+player = new Player(); // Initialize player
+bullets = [];
 drawMaze();
 
 // Add this to check for bullet exits in the animation loop
