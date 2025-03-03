@@ -79,10 +79,10 @@ class Settings {
 
 // Add after the Cell class
 class Bullet {
-    constructor(useDirection = null) {
-        // Start at the middle of the entrance (bottom of last cell)
-        this.x = canvas.width - cellSize/2; // Right-most cell
-        this.y = canvas.height;  // Bottom of maze
+    constructor(startX, startY, useDirection = null) {
+        // Start at the given position (player's position)
+        this.x = startX;
+        this.y = startY;
         
         // Get settings from singleton
         const settings = Settings.getInstance();
@@ -323,7 +323,7 @@ function createEntranceAndExit() {
 // Initialize first bullet
 function initializeFirstBullet() {
     bullets = [];
-    const firstBullet = new Bullet();
+    const firstBullet = new Bullet(player.x, player.y);
     firstBulletDirection = firstBullet.direction;
     bullets.push(firstBullet);
 }
@@ -333,7 +333,7 @@ function checkBulletCreation() {
     if (bullets.length < MAX_BULLETS) {
         const lastBullet = bullets[bullets.length - 1];
         if ((canvas.height - lastBullet.y) >= BULLET_SPACING) {
-            const newBullet = new Bullet(firstBulletDirection);
+            const newBullet = new Bullet(player.x, player.y, firstBulletDirection);
             bullets.push(newBullet);
         }
     }
@@ -368,7 +368,7 @@ function checkBulletExit() {
     bullets.forEach((bullet, index) => {
         if (bullet.y < 0) {  // Check if bullet has gone above the top
             // Reset bullet if it exits through top
-            const newBullet = new Bullet(firstBulletDirection);
+            const newBullet = new Bullet(player.x, player.y, firstBulletDirection);
             bullets[index] = newBullet;
         }
     });
@@ -446,17 +446,17 @@ drawMaze();
 // Add this to check for bullet exits in the animation loop
 setInterval(checkBulletExit, 100);
 
-// Add new function to fire bullet
+// Modify the fireBullet function
 function fireBullet() {
     if (bullets.length < MAX_BULLETS) {
         if (bullets.length === 0) {
             // First bullet - create with new random direction
-            const firstBullet = new Bullet();
+            const firstBullet = new Bullet(player.x, player.y);
             firstBulletDirection = firstBullet.direction;
             bullets.push(firstBullet);
         } else {
             // Following bullets - use same direction as first
-            const newBullet = new Bullet(firstBulletDirection);
+            const newBullet = new Bullet(player.x, player.y, firstBulletDirection);
             bullets.push(newBullet);
         }
     }
