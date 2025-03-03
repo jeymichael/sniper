@@ -78,9 +78,9 @@ class Settings {
 // Add after the Cell class
 class Bullet {
     constructor(useDirection = null) {
-        // Start at the middle of the entrance (top of first cell)
-        this.x = cellSize / 2;
-        this.y = 0;
+        // Start at the middle of the entrance (bottom of last cell)
+        this.x = canvas.width - cellSize/2; // Right-most cell
+        this.y = canvas.height;  // Bottom of maze
         
         // Get settings from singleton
         const settings = Settings.getInstance();
@@ -89,7 +89,8 @@ class Bullet {
         
         if (useDirection === null) {
             // Generate new direction only for the first bullet
-            const possibleAngles = [Math.PI/6, Math.PI/4, Math.PI/3];
+            // Change angles to point upward (-30°, -45°, or -60° from vertical)
+            const possibleAngles = [-5*Math.PI/6, -3*Math.PI/4, -2*Math.PI/3];
             const randomAngle = possibleAngles[Math.floor(Math.random() * possibleAngles.length)];
             this.direction = Math.random() < 0.5 ? randomAngle : (Math.PI - randomAngle);
         } else {
@@ -203,13 +204,13 @@ function getOppositeWall(wall) {
     return opposites[wall];
 }
 
-// Create entrance and exit
+// Modify the createEntranceAndExit function
 function createEntranceAndExit() {
-    // Create entrance at top-left
-    grid[0][0].walls.top = false;
-    
-    // Create exit at bottom-right
+    // Create entrance at bottom-right
     grid[rows-1][cols-1].walls.bottom = false;
+    
+    // Create exit at top-left
+    grid[0][0].walls.top = false;
 }
 
 // Initialize first bullet
@@ -224,7 +225,7 @@ function initializeFirstBullet() {
 function checkBulletCreation() {
     if (bullets.length < MAX_BULLETS) {
         const lastBullet = bullets[bullets.length - 1];
-        if (lastBullet.y >= BULLET_SPACING) {
+        if ((canvas.height - lastBullet.y) >= BULLET_SPACING) {
             const newBullet = new Bullet(firstBulletDirection);
             bullets.push(newBullet);
         }
@@ -255,11 +256,11 @@ function drawMaze() {
     animationId = requestAnimationFrame(drawMaze);
 }
 
-// Modify the checkBulletExit function
+// Modify the checkBulletExit function to check for top exit instead of bottom
 function checkBulletExit() {
     bullets.forEach((bullet, index) => {
-        if (bullet.y > canvas.height) {
-            // Reset bullet if it exits through bottom
+        if (bullet.y < 0) {  // Check if bullet has gone above the top
+            // Reset bullet if it exits through top
             const newBullet = new Bullet(firstBulletDirection);
             bullets[index] = newBullet;
         }
