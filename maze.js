@@ -62,19 +62,21 @@ class Cell {
 
 // Add after the Cell class
 class Bullet {
-    constructor() {
+    constructor(useDirection = null) {
         // Start at the middle of the entrance (top of first cell)
         this.x = cellSize / 2;
         this.y = 0;
         this.radius = 4;
         this.speed = 2;
         
-        // Possible angles: 30, 45, or 60 degrees (converted to radians)
-        const possibleAngles = [Math.PI/6, Math.PI/4, Math.PI/3]; // 30°, 45°, 60°
-        const randomAngle = possibleAngles[Math.floor(Math.random() * possibleAngles.length)];
-        
-        // Randomly choose left or right direction
-        this.direction = Math.random() < 0.5 ? randomAngle : (Math.PI - randomAngle);
+        if (useDirection === null) {
+            // Generate new direction only for the first bullet
+            const possibleAngles = [Math.PI/6, Math.PI/4, Math.PI/3];
+            const randomAngle = possibleAngles[Math.floor(Math.random() * possibleAngles.length)];
+            this.direction = Math.random() < 0.5 ? randomAngle : (Math.PI - randomAngle);
+        } else {
+            this.direction = useDirection;
+        }
         
         this.dx = Math.cos(this.direction) * this.speed;
         this.dy = Math.sin(this.direction) * this.speed;
@@ -126,8 +128,11 @@ class Bullet {
 }
 
 // Add after other global variables at the top
-let bullet = new Bullet();
+let bullets = [];
+const BULLET_SPACING = 25;
+const MAX_BULLETS = 5;
 let animationId;
+let firstBulletDirection; // Store the direction of the first bullet
 
 // Initialize grid
 function setupGrid() {
@@ -189,6 +194,25 @@ function createEntranceAndExit() {
     grid[rows-1][cols-1].walls.bottom = false;
 }
 
+// Initialize first bullet
+function initializeFirstBullet() {
+    bullets = [];
+    const firstBullet = new Bullet();
+    firstBulletDirection = firstBullet.direction;
+    bullets.push(firstBullet);
+}
+
+// Check if new bullet should be created
+function checkBulletCreation() {
+    if (bullets.length < MAX_BULLETS) {
+        const lastBullet = bullets[bullets.length - 1];
+        if (lastBullet.y >= BULLET_SPACING) {
+            const newBullet = new Bullet(firstBulletDirection);
+            bullets.push(newBullet);
+        }
+    }
+}
+
 // Draw the entire maze
 function drawMaze() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -200,53 +224,73 @@ function drawMaze() {
         }
     }
     
-    // Draw and update bullet
-    bullet.draw();
-    bullet.update();
+    // Check if we should create a new bullet
+    checkBulletCreation();
+    
+    // Draw and update all bullets
+    bullets.forEach(bullet => {
+        bullet.draw();
+        bullet.update();
+    });
     
     // Continue animation
     animationId = requestAnimationFrame(drawMaze);
 }
 
-// Initialize and generate the maze
-setupGrid();
-generateMaze();
-createEntranceAndExit();
-drawMaze();
-
-// Add reset functionality when bullet exits maze
+// Modify the checkBulletExit function
 function checkBulletExit() {
-    if (bullet.y > canvas.height) {
-        // Reset bullet if it exits through bottom
-        bullet = new Bullet();
-    }
+    bullets.forEach((bullet, index) => {
+        if (bullet.y > canvas.height) {
+            // Reset bullet if it exits through bottom
+            const newBullet = new Bullet(firstBulletDirection);
+            bullets[index] = newBullet;
+        }
+    });
 }
 
-// Add event listener for resetting the bullet
-document.addEventListener('keypress', (e) => {
-    if (e.key === 'r' || e.key === 'R') {
-        bullet = new Bullet();
-    }
-});
-
-// Replace the existing adjustSpeed and adjustRadius functions with these:
+// Modify the adjustSpeed function
 function adjustSpeed(newSpeed) {
     // Convert string to number and clamp between limits
     newSpeed = Math.max(0.5, Math.min(5, Number(newSpeed)));
     
-    // Update bullet speed and velocity components while maintaining direction
-    bullet.speed = newSpeed;
-    const angle = Math.atan2(bullet.dy, bullet.dx);
-    bullet.dx = Math.cos(angle) * newSpeed;
-    bullet.dy = Math.sin(angle) * newSpeed;
+    // Update all bullets' speed while maintaining their directions
+    bullets.forEach(bullet => {
+        bullet.speed = newSpeed;
+        const angle = Math.atan2(bullet.dy, bullet.dx);
+        bullet.dx = Math.cos(angle) * newSpeed;
+        bullet.dy = Math.sin(angle) * newSpeed;
+    });
     
     // Update display
     document.getElementById('speedValue').textContent = newSpeed.toFixed(1);
 }
 
+// Modify the adjustRadius function
 function adjustRadius(newRadius) {
     // Convert string to number and clamp between limits
     newRadius = Math.max(2, Math.min(8, Number(newRadius)));
-    bullet.radius = newRadius;
+    
+    // Update all bullets' radius
+    bullets.forEach(bullet => {
+        bullet.radius = newRadius;
+    });
+    
     document.getElementById('radiusValue').textContent = newRadius.toFixed(0);
-} 
+}
+
+// Modify the keypress event listener
+document.addEventListener('keypress', (e) => {
+    if (e.key === 'r' || e.key === 'R') {
+        initializeFirstBullet();
+    }
+});
+
+// Replace the initialization lines with:
+setupGrid();
+generateMaze();
+createEntranceAndExit();
+initializeFirstBullet();
+drawMaze();
+
+// Add this to check for bullet exits in the animation loop
+setInterval(checkBulletExit, 100); 
