@@ -60,14 +60,32 @@ class Cell {
     }
 }
 
+// Add this class after the Cell class and before the Bullet class
+class Settings {
+    constructor() {
+        this.bulletRadius = 4;
+        this.bulletSpeed = 2;
+    }
+
+    static getInstance() {
+        if (!Settings.instance) {
+            Settings.instance = new Settings();
+        }
+        return Settings.instance;
+    }
+}
+
 // Add after the Cell class
 class Bullet {
     constructor(useDirection = null) {
         // Start at the middle of the entrance (top of first cell)
         this.x = cellSize / 2;
         this.y = 0;
-        this.radius = 4;
-        this.speed = 2;
+        
+        // Get settings from singleton
+        const settings = Settings.getInstance();
+        this.radius = settings.bulletRadius;
+        this.speed = settings.bulletSpeed;
         
         if (useDirection === null) {
             // Generate new direction only for the first bullet
@@ -253,6 +271,9 @@ function adjustSpeed(newSpeed) {
     // Convert string to number and clamp between limits
     newSpeed = Math.max(0.5, Math.min(5, Number(newSpeed)));
     
+    // Update settings
+    Settings.getInstance().bulletSpeed = newSpeed;
+    
     // Update all bullets' speed while maintaining their directions
     bullets.forEach(bullet => {
         bullet.speed = newSpeed;
@@ -269,6 +290,9 @@ function adjustSpeed(newSpeed) {
 function adjustRadius(newRadius) {
     // Convert string to number and clamp between limits
     newRadius = Math.max(2, Math.min(8, Number(newRadius)));
+    
+    // Update settings
+    Settings.getInstance().bulletRadius = newRadius;
     
     // Update all bullets' radius
     bullets.forEach(bullet => {
