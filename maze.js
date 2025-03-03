@@ -162,6 +162,12 @@ const BULLET_SPACING = 25;
 const MAX_BULLETS = 100;
 let animationId;
 
+// Add to global variables at the top
+let rotationState = {
+    clockwise: false,
+    counterClockwise: false
+};
+
 // Modify the Player class
 class Player {
     constructor() {
@@ -377,9 +383,17 @@ function checkBulletCreation() {
     }
 }
 
-// Draw the entire maze
+// Modify the drawMaze function to include rotation updates
 function drawMaze() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Update player rotation if shift is held
+    if (rotationState.clockwise) {
+        player.rotateClockwise();
+    }
+    if (rotationState.counterClockwise) {
+        player.rotateCounterClockwise();
+    }
     
     // Draw maze
     for (let row = 0; row < rows; row++) {
@@ -470,13 +484,24 @@ document.addEventListener('keydown', (e) => {
             fireBullet();
             break;
         case 'Shift':
-            // Check if it's left or right shift
+            // Start rotation based on which Shift key
             if (e.location === KeyboardEvent.DOM_KEY_LOCATION_LEFT) {
-                player.rotateCounterClockwise();
+                rotationState.counterClockwise = true;
             } else if (e.location === KeyboardEvent.DOM_KEY_LOCATION_RIGHT) {
-                player.rotateClockwise();
+                rotationState.clockwise = true;
             }
             break;
+    }
+});
+
+// Add keyup event listener to stop rotation
+document.addEventListener('keyup', (e) => {
+    if (e.key === 'Shift') {
+        if (e.location === KeyboardEvent.DOM_KEY_LOCATION_LEFT) {
+            rotationState.counterClockwise = false;
+        } else if (e.location === KeyboardEvent.DOM_KEY_LOCATION_RIGHT) {
+            rotationState.clockwise = false;
+        }
     }
 });
 
