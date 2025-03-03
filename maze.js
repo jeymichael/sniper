@@ -67,6 +67,8 @@ class Settings {
         this.bulletSpeed = 2;
         this.playerRadius = 5;  // Add player radius
         this.playerSpeed = 5;   // Add player speed
+        this.bulletLifetime = 10000; // 10 seconds in milliseconds
+        this.bulletFadeSteps = 4;   // Number of color steps before disappearing
     }
 
     static getInstance() {
@@ -101,12 +103,23 @@ class Bullet {
         
         this.dx = Math.cos(this.direction) * this.speed;
         this.dy = Math.sin(this.direction) * this.speed;
+
+        // Add lifetime tracking
+        this.birthTime = Date.now();
+        this.settings = Settings.getInstance();
+        this.opacity = 1.0;
     }
 
     draw() {
+        const age = Date.now() - this.birthTime;
+        const lifePercent = age / this.settings.bulletLifetime;
+        
+        // Calculate fading
+        this.opacity = 1.0 - (lifePercent * this.settings.bulletFadeSteps/4);
+        
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-        ctx.fillStyle = 'red';
+        ctx.fillStyle = `rgba(255, 0, 0, ${Math.max(0, this.opacity)})`;
         ctx.fill();
         ctx.closePath();
     }
@@ -145,6 +158,11 @@ class Bullet {
         this.checkCollision();
         this.x += this.dx;
         this.y += this.dy;
+    }
+
+    // Add method to check if bullet should be removed
+    isDead() {
+        return Date.now() - this.birthTime > this.settings.bulletLifetime;
     }
 }
 
@@ -363,9 +381,11 @@ function drawMaze() {
     animationId = requestAnimationFrame(drawMaze);
 }
 
-// Modify the checkBulletExit function to simply remove exited bullets
+// Modify the checkBulletExit function to also remove dead bullets
 function checkBulletExit() {
-    bullets = bullets.filter(bullet => bullet.y >= 0);
+    bullets = bullets.filter(bullet => 
+        bullet.y >= 0 && !bullet.isDead()
+    );
 }
 
 // Modify the adjustSpeed function
