@@ -2,11 +2,11 @@ const canvas = document.getElementById('mazeCanvas');
 const ctx = canvas.getContext('2d');
 
 // Set canvas size
-canvas.width = 200;
-canvas.height = 200;
+canvas.width = 300;
+canvas.height = 300;
 
 // Maze configuration
-const cellSize = 20;
+const cellSize = 30;
 const rows = Math.floor(canvas.height / cellSize);
 const cols = Math.floor(canvas.width / cellSize);
 const grid = [];
