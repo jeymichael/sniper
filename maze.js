@@ -67,8 +67,14 @@ class Bullet {
         this.x = cellSize / 2;
         this.y = 0;
         this.radius = 4;
-        // Random initial direction (45 degrees left or right)
-        this.direction = Math.random() < 0.5 ? Math.PI/4 : (Math.PI - Math.PI/4);
+        
+        // Possible angles: 30, 45, or 60 degrees (converted to radians)
+        const possibleAngles = [Math.PI/6, Math.PI/4, Math.PI/3]; // 30°, 45°, 60°
+        const randomAngle = possibleAngles[Math.floor(Math.random() * possibleAngles.length)];
+        
+        // Randomly choose left or right direction
+        this.direction = Math.random() < 0.5 ? randomAngle : (Math.PI - randomAngle);
+        
         this.speed = 2;
         this.dx = Math.cos(this.direction) * this.speed;
         this.dy = Math.sin(this.direction) * this.speed;
