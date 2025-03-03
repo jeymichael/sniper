@@ -33,6 +33,21 @@
             min-width: 30px;
             text-align: right;
         }
+        .button-group {
+            margin-top: 20px;
+        }
+        button {
+            padding: 8px 16px;
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        #fireButton {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -63,6 +78,10 @@
                        oninput="adjustRadius(this.value)">
                 <span id="radiusValue" class="value-display">4</span>
             </div>
+        </div>
+        <div class="button-group">
+            <button id="fireButton" onclick="fireBullet()">FIRE</button>
+            <button onclick="bullets = []">Reset</button>
         </div>
     </div>
     <script src="maze.js"></script>

@@ -63,7 +63,7 @@ class Cell {
 // Add this class after the Cell class and before the Bullet class
 class Settings {
     constructor() {
-        this.bulletRadius = 4;
+        this.bulletRadius = 3;
         this.bulletSpeed = 2;
     }
 
@@ -149,7 +149,7 @@ class Bullet {
 // Add after other global variables at the top
 let bullets = [];
 const BULLET_SPACING = 25;
-const MAX_BULLETS = 5;
+const MAX_BULLETS = 100;
 let animationId;
 let firstBulletDirection; // Store the direction of the first bullet
 
@@ -243,9 +243,6 @@ function drawMaze() {
         }
     }
     
-    // Check if we should create a new bullet
-    checkBulletCreation();
-    
     // Draw and update all bullets
     bullets.forEach(bullet => {
         bullet.draw();
@@ -314,8 +311,24 @@ document.addEventListener('keypress', (e) => {
 setupGrid();
 generateMaze();
 createEntranceAndExit();
-initializeFirstBullet();
+bullets = []; // Start with empty array
 drawMaze();
 
 // Add this to check for bullet exits in the animation loop
-setInterval(checkBulletExit, 100); 
+setInterval(checkBulletExit, 100);
+
+// Add new function to fire bullet
+function fireBullet() {
+    if (bullets.length < MAX_BULLETS) {
+        if (bullets.length === 0) {
+            // First bullet - create with new random direction
+            const firstBullet = new Bullet();
+            firstBulletDirection = firstBullet.direction;
+            bullets.push(firstBullet);
+        } else {
+            // Following bullets - use same direction as first
+            const newBullet = new Bullet(firstBulletDirection);
+            bullets.push(newBullet);
+        }
+    }
+} 
