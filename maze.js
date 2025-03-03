@@ -69,6 +69,7 @@ class Settings {
         this.playerSpeed = 5;   // Add player speed
         this.bulletLifetime = 10000; // 10 seconds in milliseconds
         this.bulletFadeSteps = 4;   // Number of color steps before disappearing
+        this.rotationSpeed = Math.PI/32; // Amount to rotate per key press (about 5.625 degrees)
     }
 
     static getInstance() {
@@ -81,26 +82,15 @@ class Settings {
 
 // Add after the Cell class
 class Bullet {
-    constructor(startX, startY, useDirection = null) {
-        // Start at the given position (player's position)
+    constructor(startX, startY, direction) {
         this.x = startX;
         this.y = startY;
         
-        // Get settings from singleton
         const settings = Settings.getInstance();
         this.radius = settings.bulletRadius;
         this.speed = settings.bulletSpeed;
         
-        if (useDirection === null) {
-            // Generate new direction only for the first bullet
-            // Change angles to point upward (-30°, -45°, or -60° from vertical)
-            const possibleAngles = [-5*Math.PI/6, -3*Math.PI/4, -2*Math.PI/3];
-            const randomAngle = possibleAngles[Math.floor(Math.random() * possibleAngles.length)];
-            this.direction = Math.random() < 0.5 ? randomAngle : (Math.PI - randomAngle);
-        } else {
-            this.direction = useDirection;
-        }
-        
+        this.direction = direction;
         this.dx = Math.cos(this.direction) * this.speed;
         this.dy = Math.sin(this.direction) * this.speed;
 
@@ -171,9 +161,8 @@ let bullets = [];
 const BULLET_SPACING = 25;
 const MAX_BULLETS = 100;
 let animationId;
-let firstBulletDirection; // Store the direction of the first bullet
 
-// Modify the Player class constructor
+// Modify the Player class
 class Player {
     constructor() {
         // Start at the center of entrance cell (bottom-right)
@@ -185,14 +174,37 @@ class Player {
         this.radius = settings.playerRadius;
         this.moveSpeed = settings.playerSpeed;
         this.color = '#00ff00';
+        this.arrowLength = this.radius * 1.5; // Length of direction indicator
+        this.direction = -3*Math.PI/4; // Initial direction (-45 degrees)
     }
 
     draw() {
+        // Draw player circle
         ctx.beginPath();
         ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
         ctx.fillStyle = this.color;
         ctx.fill();
         ctx.closePath();
+
+        // Draw direction arrow using player's direction
+        this.drawDirectionArrow(this.direction);
+    }
+
+    drawDirectionArrow(direction) {
+        const startX = this.x;
+        const startY = this.y;
+        const endX = startX + Math.cos(direction) * this.arrowLength;
+        const endY = startY + Math.sin(direction) * this.arrowLength;
+
+        // Draw arrow line
+        ctx.beginPath();
+        ctx.strokeStyle = '#004400';
+        ctx.lineWidth = 2;
+        ctx.moveTo(startX, startY);
+        ctx.lineTo(endX, endY);
+
+        ctx.stroke();
+        ctx.lineWidth = 1;
     }
 
     // Check if a move would result in wall collision
@@ -273,6 +285,15 @@ class Player {
             this.y = newY;
         }
     }
+
+    // Add rotation methods
+    rotateClockwise() {
+        this.direction += Settings.getInstance().rotationSpeed;
+    }
+
+    rotateCounterClockwise() {
+        this.direction -= Settings.getInstance().rotationSpeed;
+    }
 }
 
 // Add to global variables
@@ -341,8 +362,7 @@ function createEntranceAndExit() {
 // Initialize first bullet
 function initializeFirstBullet() {
     bullets = [];
-    const firstBullet = new Bullet(player.x, player.y);
-    firstBulletDirection = firstBullet.direction;
+    const firstBullet = new Bullet(player.x, player.y, player.direction);
     bullets.push(firstBullet);
 }
 
@@ -351,7 +371,7 @@ function checkBulletCreation() {
     if (bullets.length < MAX_BULLETS) {
         const lastBullet = bullets[bullets.length - 1];
         if ((canvas.height - lastBullet.y) >= BULLET_SPACING) {
-            const newBullet = new Bullet(player.x, player.y, firstBulletDirection);
+            const newBullet = new Bullet(player.x, player.y, player.direction);
             bullets.push(newBullet);
         }
     }
@@ -431,7 +451,7 @@ document.addEventListener('keypress', (e) => {
     }
 });
 
-// Modify the keydown event listener to include spacebar
+// Modify the keydown event listener to include spacebar and handle Shift keys
 document.addEventListener('keydown', (e) => {
     switch(e.key) {
         case 'ArrowUp':
@@ -449,6 +469,14 @@ document.addEventListener('keydown', (e) => {
         case ' ': // Spacebar
             fireBullet();
             break;
+        case 'Shift':
+            // Check if it's left or right shift
+            if (e.location === KeyboardEvent.DOM_KEY_LOCATION_LEFT) {
+                player.rotateCounterClockwise();
+            } else if (e.location === KeyboardEvent.DOM_KEY_LOCATION_RIGHT) {
+                player.rotateClockwise();
+            }
+            break;
     }
 });
 
@@ -463,18 +491,11 @@ drawMaze();
 // Add this to check for bullet exits in the animation loop
 setInterval(checkBulletExit, 100);
 
-// Modify the fireBullet function
+// Modify the fireBullet function to always use player's current direction
 function fireBullet() {
     if (bullets.length < MAX_BULLETS) {
-        if (bullets.length === 0) {
-            // First bullet - create with new random direction
-            const firstBullet = new Bullet(player.x, player.y);
-            firstBulletDirection = firstBullet.direction;
-            bullets.push(firstBullet);
-        } else {
-            // Following bullets - use same direction as first
-            const newBullet = new Bullet(player.x, player.y, firstBulletDirection);
-            bullets.push(newBullet);
-        }
+        // Always use player's current direction for new bullets
+        const newBullet = new Bullet(player.x, player.y, player.direction);
+        bullets.push(newBullet);
     }
 } 
