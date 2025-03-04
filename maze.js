@@ -115,32 +115,32 @@ class Bullet {
         ctx.closePath();
     }
 
-    // Check collision with walls
+    // Update checkCollision to use maze instance
     checkCollision() {
-        // Get current cell position
-        const col = Math.floor(this.x / cellSize);
-        const row = Math.floor(this.y / cellSize);
+        const col = Math.floor(this.x / maze.cellSize);
+        const row = Math.floor(this.y / maze.cellSize);
 
-        // Check if bullet is within maze bounds
-        if (row < 0 || row >= rows || col < 0 || col >= cols) {
+        // Use maze's isInBounds method
+        if (!maze.isInBounds(row, col)) {
             return;
         }
 
-        const cell = grid[row][col];
-        const relativeX = this.x % cellSize;
-        const relativeY = this.y % cellSize;
+        // Use maze's grid to get cell
+        const cell = maze.grid[row][col];
+        const relativeX = this.x % maze.cellSize;
+        const relativeY = this.y % maze.cellSize;
 
-        // Check collision with walls
+        // Check collision with walls using maze.cellSize
         if (cell.walls.top && relativeY <= this.radius) {
             this.dy = Math.abs(this.dy); // Bounce down
         }
-        if (cell.walls.bottom && relativeY >= cellSize - this.radius) {
+        if (cell.walls.bottom && relativeY >= maze.cellSize - this.radius) {
             this.dy = -Math.abs(this.dy); // Bounce up
         }
         if (cell.walls.left && relativeX <= this.radius) {
             this.dx = Math.abs(this.dx); // Bounce right
         }
-        if (cell.walls.right && relativeX >= cellSize - this.radius) {
+        if (cell.walls.right && relativeX >= maze.cellSize - this.radius) {
             this.dx = -Math.abs(this.dx); // Bounce left
         }
     }
@@ -158,7 +158,7 @@ class Bullet {
 }
 
 // Add after other global variables at the top
-let bullets = [];
+//let bullets = [];
 const BULLET_SPACING = 25;
 const MAX_BULLETS = 100;
 let animationId;
@@ -173,8 +173,8 @@ let rotationState = {
 class Player {
     constructor() {
         // Start at the center of entrance cell (bottom-right)
-        this.x = canvas.width - cellSize/2;
-        this.y = canvas.height - cellSize/2;
+        this.x = maze.canvas.width - maze.cellSize/2;
+        this.y = maze.canvas.height - maze.cellSize/2;
         
         // Get settings from singleton
         const settings = Settings.getInstance();
@@ -229,7 +229,7 @@ class Player {
         }
 
         // Check if player is at exit (top-left)
-        if (this.y <= cellSize && this.x <= cellSize) {
+        if (this.y <= maze.cellSize && this.x <= maze.cellSize) {
             this.hasExited = true;
             Settings.getInstance().hasExited = true;
             this.playExitSound();
@@ -247,39 +247,39 @@ class Player {
         // Get cells that the player's circle intersects with
         const cells = {
             topLeft: {
-                col: Math.floor(bounds.left / cellSize),
-                row: Math.floor(bounds.top / cellSize)
+                col: Math.floor(bounds.left / maze.cellSize),
+                row: Math.floor(bounds.top / maze.cellSize)
             },
             topRight: {
-                col: Math.floor(bounds.right / cellSize),
-                row: Math.floor(bounds.top / cellSize)
+                col: Math.floor(bounds.right / maze.cellSize),
+                row: Math.floor(bounds.top / maze.cellSize)
             },
             bottomLeft: {
-                col: Math.floor(bounds.left / cellSize),
-                row: Math.floor(bounds.bottom / cellSize)
+                col: Math.floor(bounds.left / maze.cellSize),
+                row: Math.floor(bounds.bottom / maze.cellSize)
             },
             bottomRight: {
-                col: Math.floor(bounds.right / cellSize),
-                row: Math.floor(bounds.bottom / cellSize)
+                col: Math.floor(bounds.right / maze.cellSize),
+                row: Math.floor(bounds.bottom / maze.cellSize)
             }
         };
 
         // Check if any part of the player would be outside the maze
-        if (bounds.left < 0 || bounds.right > canvas.width ||
-            bounds.top < 0 || bounds.bottom > canvas.height) {
+        if (bounds.left < 0 || bounds.right > maze.canvas.width ||
+            bounds.top < 0 || bounds.bottom > maze.canvas.height) {
             return false;
         }
 
         // Check each cell the player's circle intersects with
         for (const cell of Object.values(cells)) {
             // Skip if cell coordinates are outside the grid
-            if (cell.row < 0 || cell.row >= rows || cell.col < 0 || cell.col >= cols) {
+            if (!maze.isInBounds(cell.row, cell.col)) {
                 continue;
             }
 
-            const currentCell = grid[cell.row][cell.col];
-            const relativeX = newX - (cell.col * cellSize);
-            const relativeY = newY - (cell.row * cellSize);
+            const currentCell = maze.grid[cell.row][cell.col];
+            const relativeX = newX - (cell.col * maze.cellSize);
+            const relativeY = newY - (cell.row * maze.cellSize);
 
             // Check collision with walls
             if (currentCell.walls.top && 
@@ -287,7 +287,7 @@ class Player {
                 return false;
             }
             if (currentCell.walls.bottom && 
-                Math.abs(relativeY - cellSize) <= this.radius) {
+                Math.abs(relativeY - maze.cellSize) <= this.radius) {
                 return false;
             }
             if (currentCell.walls.left && 
@@ -295,7 +295,7 @@ class Player {
                 return false;
             }
             if (currentCell.walls.right && 
-                Math.abs(relativeX - cellSize) <= this.radius) {
+                Math.abs(relativeX - maze.cellSize) <= this.radius) {
                 return false;
             }
         }
@@ -343,69 +343,6 @@ class Player {
     }
 }
 
-// Add to global variables
-let player = new Player();
-
-// Initialize grid
-function setupGrid() {
-    for (let row = 0; row < rows; row++) {
-        grid[row] = [];
-        for (let col = 0; col < cols; col++) {
-            grid[row][col] = new Cell(row, col);
-        }
-    }
-}
-
-// Generate maze using recursive backtracking
-function generateMaze(row = 0, col = 0) {
-    const current = grid[row][col];
-    current.visited = true;
-
-    const directions = [
-        ['top', -1, 0],
-        ['right', 0, 1],
-        ['bottom', 1, 0],
-        ['left', 0, -1]
-    ];
-
-    // Shuffle directions for randomness
-    directions.sort(() => Math.random() - 0.5);
-
-    for (const [wall, rowOffset, colOffset] of directions) {
-        const newRow = row + rowOffset;
-        const newCol = col + colOffset;
-
-        if (newRow >= 0 && newRow < rows && newCol >= 0 && newCol < cols) {
-            const neighbor = grid[newRow][newCol];
-            if (!neighbor.visited) {
-                // Remove walls between current cell and neighbor
-                current.walls[wall] = false;
-                neighbor.walls[getOppositeWall(wall)] = false;
-                generateMaze(newRow, newCol);
-            }
-        }
-    }
-}
-
-function getOppositeWall(wall) {
-    const opposites = {
-        'top': 'bottom',
-        'right': 'left',
-        'bottom': 'top',
-        'left': 'right'
-    };
-    return opposites[wall];
-}
-
-// Modify the createEntranceAndExit function
-function createEntranceAndExit() {
-    // Create entrance at bottom-right
-    grid[rows-1][cols-1].walls.bottom = false;
-    
-    // Create exit at top-left
-    grid[0][0].walls.top = false;
-}
-
 // Initialize first bullet
 function initializeFirstBullet() {
     bullets = [];
@@ -423,39 +360,6 @@ function checkBulletCreation() {
         }
     }
 }
-
-// Modify the drawMaze function to include rotation updates
-function drawMaze() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    // Update player rotation if shift is held
-    if (rotationState.clockwise) {
-        player.rotateClockwise();
-    }
-    if (rotationState.counterClockwise) {
-        player.rotateCounterClockwise();
-    }
-    
-    // Draw maze
-    for (let row = 0; row < rows; row++) {
-        for (let col = 0; col < cols; col++) {
-            grid[row][col].draw();
-        }
-    }
-    
-    // Draw player
-    player.draw();
-    
-    // Draw and update all bullets
-    bullets.forEach(bullet => {
-        bullet.draw();
-        bullet.update();
-    });
-    
-    // Continue animation
-    animationId = requestAnimationFrame(drawMaze);
-}
-
 // Modify the checkBulletExit function to also remove dead bullets
 function checkBulletExit() {
     bullets = bullets.filter(bullet => 
@@ -546,13 +450,7 @@ if (typeof document !== 'undefined') {
     });
 }
 
-// Replace the initialization lines with:
-setupGrid();
-generateMaze();
-createEntranceAndExit();
-player = new Player(); // Initialize player
-bullets = [];
-drawMaze();
+bullets = []; // Needed here! 
 
 // Add this to check for bullet exits in the animation loop
 setInterval(checkBulletExit, 100);
@@ -566,12 +464,154 @@ function fireBullet() {
     }
 }
 
-// Add at the end of the file
+class Maze {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.cellSize = 30;
+        this.rows = Math.floor(canvas.height / this.cellSize);
+        this.cols = Math.floor(canvas.width / this.cellSize);
+        this.grid = [];
+        
+        this.setupGrid();
+        this.generateMaze();
+        this.createEntranceAndExit();
+    }
+
+    setupGrid() {
+        for (let row = 0; row < this.rows; row++) {
+            this.grid[row] = [];
+            for (let col = 0; col < this.cols; col++) {
+                this.grid[row][col] = new Cell(row, col);
+            }
+        }
+    }
+
+    generateMaze(row = 0, col = 0) {
+        const current = this.grid[row][col];
+        current.visited = true;
+
+        const directions = [
+            ['top', -1, 0],
+            ['right', 0, 1],
+            ['bottom', 1, 0],
+            ['left', 0, -1]
+        ];
+
+        directions.sort(() => Math.random() - 0.5);
+
+        for (const [wall, rowOffset, colOffset] of directions) {
+            const newRow = row + rowOffset;
+            const newCol = col + colOffset;
+
+            if (this.isInBounds(newRow, newCol)) {
+                const neighbor = this.grid[newRow][newCol];
+                if (!neighbor.visited) {
+                    current.walls[wall] = false;
+                    neighbor.walls[this.getOppositeWall(wall)] = false;
+                    this.generateMaze(newRow, newCol);
+                }
+            }
+        }
+    }
+
+    isInBounds(row, col) {
+        return row >= 0 && row < this.rows && col >= 0 && col < this.cols;
+    }
+
+    getOppositeWall(wall) {
+        const opposites = {
+            'top': 'bottom',
+            'right': 'left',
+            'bottom': 'top',
+            'left': 'right'
+        };
+        return opposites[wall];
+    }
+
+    createEntranceAndExit() {
+        // Create entrance at bottom-right
+        this.grid[this.rows-1][this.cols-1].walls.bottom = false;
+        
+        // Create exit at top-left
+        this.grid[0][0].walls.top = false;
+    }
+
+    draw() {
+        for (let row = 0; row < this.rows; row++) {
+            for (let col = 0; col < this.cols; col++) {
+                const cell = this.grid[row][col];
+                const x = col * this.cellSize;
+                const y = row * this.cellSize;
+
+                this.ctx.strokeStyle = '#000';
+                this.ctx.beginPath();
+
+                if (cell.walls.top) {
+                    this.ctx.moveTo(x, y);
+                    this.ctx.lineTo(x + this.cellSize, y);
+                }
+                if (cell.walls.right) {
+                    this.ctx.moveTo(x + this.cellSize, y);
+                    this.ctx.lineTo(x + this.cellSize, y + this.cellSize);
+                }
+                if (cell.walls.bottom) {
+                    this.ctx.moveTo(x + this.cellSize, y + this.cellSize);
+                    this.ctx.lineTo(x, y + this.cellSize);
+                }
+                if (cell.walls.left) {
+                    this.ctx.moveTo(x, y + this.cellSize);
+                    this.ctx.lineTo(x, y);
+                }
+
+                this.ctx.stroke();
+
+                if (cell.visited) {
+                    this.ctx.fillStyle = 'rgba(0, 255, 0, 0.1)';
+                    this.ctx.fillRect(x, y, this.cellSize, this.cellSize);
+                }
+            }
+        }
+    }
+}
+
+// Create maze instance
+const maze = new Maze(canvas);
+
+// Update drawMaze function
+function drawMaze() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (rotationState.clockwise) {
+        player.rotateClockwise();
+    }
+    if (rotationState.counterClockwise) {
+        player.rotateCounterClockwise();
+    }
+    
+    maze.draw();
+    player.draw();
+    
+    bullets.forEach(bullet => {
+        bullet.draw();
+        bullet.update();
+    });
+    
+    animationId = requestAnimationFrame(drawMaze);
+}
+
+// Initialize game objects
+player = new Player();
+bullets.length = 0;
+drawMaze();
+
+// Update exports
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         Player,
         Cell,
         Bullet,
-        Settings
+        Settings,
+        Maze
     };
 } 
