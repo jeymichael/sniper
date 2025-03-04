@@ -46,7 +46,7 @@ global.window = {
 global.requestAnimationFrame = window.requestAnimationFrame;
 
 // Import the classes (you'll need to export them from maze.js)
-const { Player, Cell, Bullet, Settings } = require('./maze.js');
+const { Player, Cell, Bullet, Settings, Maze } = require('./maze.js');
 
 describe('Player Class', () => {
     let player;
@@ -184,6 +184,147 @@ describe('Bullet Class', () => {
         // Mock time passing beyond lifetime
         jest.spyOn(Date, 'now').mockImplementation(() => bullet.birthTime + 11000);
         expect(bullet.isDead()).toBe(true);
+    });
+});
+
+describe('Maze Class', () => {
+    let maze;
+    
+    beforeEach(() => {
+        maze = new Maze(mockCanvas);
+    });
+
+    test('initializes with correct dimensions', () => {
+        expect(maze.cellSize).toBe(30);
+        expect(maze.rows).toBe(10); // 300/30
+        expect(maze.cols).toBe(10); // 300/30
+        expect(maze.grid.length).toBe(10);
+        expect(maze.grid[0].length).toBe(10);
+    });
+
+    test('setupGrid creates grid with correct cells', () => {
+        // Create a new maze but don't generate the maze yet
+        const testMaze = new Maze(mockCanvas);
+        
+        // Clear the grid and run setupGrid manually
+        testMaze.grid = [];
+        testMaze.setupGrid();
+
+        // Now check if all cells are properly initialized
+        for (let row = 0; row < testMaze.rows; row++) {
+            for (let col = 0; col < testMaze.cols; col++) {
+                const cell = testMaze.grid[row][col];
+                expect(cell).toBeInstanceOf(Cell);
+                expect(cell.row).toBe(row);
+                expect(cell.col).toBe(col);
+                expect(cell.walls).toEqual({
+                    top: true,
+                    right: true,
+                    bottom: true,
+                    left: true
+                });
+                expect(cell.visited).toBe(false);
+            }
+        }
+    });
+
+    test('generateMaze creates valid maze paths', () => {
+        // After maze generation, check if:
+        // 1. All cells are visited
+        // 2. There are no isolated cells (each cell connects to at least one other)
+        let visitedCount = 0;
+        let connectedCellsCount = 0;
+
+        for (let row = 0; row < maze.rows; row++) {
+            for (let col = 0; col < maze.cols; col++) {
+                const cell = maze.grid[row][col];
+                if (cell.visited) visitedCount++;
+
+                // Count how many connections this cell has
+                const connections = Object.values(cell.walls).filter(wall => !wall).length;
+                if (connections > 0) connectedCellsCount++;
+            }
+        }
+
+        expect(visitedCount).toBe(maze.rows * maze.cols); // All cells visited
+        expect(connectedCellsCount).toBe(maze.rows * maze.cols); // All cells connected
+    });
+
+    test('createEntranceAndExit sets correct openings', () => {
+        // Check entrance (bottom-right)
+        const entrance = maze.grid[maze.rows-1][maze.cols-1];
+        expect(entrance.walls.bottom).toBe(false);
+
+        // Check exit (top-left)
+        const exit = maze.grid[0][0];
+        expect(exit.walls.top).toBe(false);
+    });
+
+    test('isInBounds correctly validates positions', () => {
+        // Test valid positions
+        expect(maze.isInBounds(0, 0)).toBe(true);
+        expect(maze.isInBounds(maze.rows-1, maze.cols-1)).toBe(true);
+        expect(maze.isInBounds(5, 5)).toBe(true);
+
+        // Test invalid positions
+        expect(maze.isInBounds(-1, 5)).toBe(false);
+        expect(maze.isInBounds(5, -1)).toBe(false);
+        expect(maze.isInBounds(maze.rows, 5)).toBe(false);
+        expect(maze.isInBounds(5, maze.cols)).toBe(false);
+    });
+
+    test('getOppositeWall returns correct opposites', () => {
+        expect(maze.getOppositeWall('top')).toBe('bottom');
+        expect(maze.getOppositeWall('right')).toBe('left');
+        expect(maze.getOppositeWall('bottom')).toBe('top');
+        expect(maze.getOppositeWall('left')).toBe('right');
+    });
+
+    test('draw method calls correct canvas methods', () => {
+        maze.draw();
+
+        // Verify that the correct drawing methods were called
+        expect(mockCtx.beginPath).toHaveBeenCalled();
+        expect(mockCtx.moveTo).toHaveBeenCalled();
+        expect(mockCtx.lineTo).toHaveBeenCalled();
+        expect(mockCtx.stroke).toHaveBeenCalled();
+        expect(mockCtx.fillRect).toHaveBeenCalled();
+
+        // Verify stroke style was set
+        expect(mockCtx.strokeStyle).toBe('#000');
+    });
+
+    test('maze is fully connected from entrance to exit', () => {
+        // Helper function to find path using DFS
+        function hasPath(row, col, visited = new Set()) {
+            if (row === 0 && col === 0) return true; // Reached exit
+            
+            const key = `${row},${col}`;
+            if (visited.has(key)) return false;
+            visited.add(key);
+
+            const cell = maze.grid[row][col];
+            
+            // Try all possible directions
+            if (!cell.walls.top && row > 0) {
+                if (hasPath(row-1, col, visited)) return true;
+            }
+            if (!cell.walls.right && col < maze.cols-1) {
+                if (hasPath(row, col+1, visited)) return true;
+            }
+            if (!cell.walls.bottom && row < maze.rows-1) {
+                if (hasPath(row+1, col, visited)) return true;
+            }
+            if (!cell.walls.left && col > 0) {
+                if (hasPath(row, col-1, visited)) return true;
+            }
+
+            return false;
+        }
+
+        // Start from entrance (bottom-right)
+        const hasValidPath = hasPath(maze.rows-1, maze.cols-1);
+        expect(hasValidPath).toBe(true);
     });
 });
 
