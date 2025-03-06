@@ -63,14 +63,21 @@ class Cell {
 // Modify the Settings class
 class Settings {
     constructor() {
+        // Bullet settings
         this.bulletRadius = 3;
         this.bulletSpeed = 2;
-        this.playerRadius = 5;  // Add player radius
-        this.playerSpeed = 5;   // Add player speed
         this.bulletLifetime = 10000; // 10 seconds in milliseconds
         this.bulletFadeSteps = 4;   // Number of color steps before disappearing
-        this.rotationSpeed = Math.PI/32; // Amount to rotate per key press (about 5.625 degrees)
-        this.hasExited = false; // Track if player has reached exit
+        this.bulletSpacing = 25;    // Move BULLET_SPACING here
+        this.maxBullets = 100;      // Move MAX_BULLETS here
+
+        // Player settings
+        this.playerRadius = 5;
+        this.playerSpeed = 5;
+        this.rotationSpeed = Math.PI/32;
+
+        // Game state
+        this.hasExited = false;
     }
 
     static getInstance() {
@@ -352,9 +359,10 @@ function initializeFirstBullet() {
 
 // Check if new bullet should be created
 function checkBulletCreation() {
-    if (bullets.length < MAX_BULLETS) {
+    const settings = Settings.getInstance();
+    if (bullets.length < settings.maxBullets) {
         const lastBullet = bullets[bullets.length - 1];
-        if ((canvas.height - lastBullet.y) >= BULLET_SPACING) {
+        if ((canvas.height - lastBullet.y) >= settings.bulletSpacing) {
             const newBullet = new Bullet(player.x, player.y, player.direction);
             bullets.push(newBullet);
         }
@@ -457,8 +465,8 @@ setInterval(checkBulletExit, 100);
 
 // Modify the fireBullet function to always use player's current direction
 function fireBullet() {
-    if (bullets.length < MAX_BULLETS) {
-        // Always use player's current direction for new bullets
+    const settings = Settings.getInstance();
+    if (bullets.length < settings.maxBullets) {
         const newBullet = new Bullet(player.x, player.y, player.direction);
         bullets.push(newBullet);
     }
