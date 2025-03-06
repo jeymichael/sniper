@@ -16,6 +16,10 @@ class Config {
     static get CELL_SIZE() { return 30; }
     static get BULLET_SPACING() { return 25; }
     static get MAX_BULLETS() { return 100; }
+    static get CANVAS_WIDTH() { return 300; }
+    static get CANVAS_HEIGHT() { return 300; }
+    static get ROWS() { return Math.floor(this.CANVAS_HEIGHT / this.CELL_SIZE); }
+    static get COLS() { return Math.floor(this.CANVAS_WIDTH / this.CELL_SIZE); }
     // Add other static config values as needed
 }
 
@@ -482,8 +486,8 @@ class Maze {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
         this.cellSize = Config.CELL_SIZE;
-        this.rows = Math.floor(canvas.height / this.cellSize);
-        this.cols = Math.floor(canvas.width / this.cellSize);
+        this.rows = Config.ROWS;     // Use Config class
+        this.cols = Config.COLS;     // Use Config class
         this.grid = [];
         
         this.setupGrid();
@@ -627,4 +631,10 @@ if (typeof module !== 'undefined' && module.exports) {
         Settings,
         Maze
     };
+}
+
+// Update canvas size using Config
+if (typeof document !== 'undefined') {
+    canvas.width = Config.CANVAS_WIDTH;
+    canvas.height = Config.CANVAS_HEIGHT;
 } 
