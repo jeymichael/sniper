@@ -1,16 +1,3 @@
-const canvas = document.getElementById('mazeCanvas');
-const ctx = canvas.getContext('2d');
-
-// Set canvas size
-canvas.width = 300;
-canvas.height = 300;
-
-// Maze configuration
-const cellSize = 30;
-const rows = Math.floor(canvas.height / cellSize);
-const cols = Math.floor(canvas.width / cellSize);
-const grid = [];
-
 // Add Config class at the top of the file
 class Config {
     static get CELL_SIZE() { return 30; }
@@ -22,6 +9,13 @@ class Config {
     static get COLS() { return Math.floor(this.CANVAS_WIDTH / this.CELL_SIZE); }
     // Add other static config values as needed
 }
+
+const canvas = document.getElementById('mazeCanvas');
+const ctx = canvas.getContext('2d');
+
+// Set canvas size
+canvas.width = Config.CANVAS_WIDTH;
+canvas.height = Config.CANVAS_HEIGHT;
 
 // Cell class to represent each position in the maze
 class Cell {
@@ -38,8 +32,8 @@ class Cell {
     }
 
     draw() {
-        const x = this.col * cellSize;
-        const y = this.row * cellSize;
+        const x = this.col * Config.CELL_SIZE;
+        const y = this.row * Config.CELL_SIZE;
 
         ctx.strokeStyle = '#000';
         ctx.beginPath();
@@ -47,18 +41,18 @@ class Cell {
         // Draw walls
         if (this.walls.top) {
             ctx.moveTo(x, y);
-            ctx.lineTo(x + cellSize, y);
+            ctx.lineTo(x + Config.CELL_SIZE, y);
         }
         if (this.walls.right) {
-            ctx.moveTo(x + cellSize, y);
-            ctx.lineTo(x + cellSize, y + cellSize);
+            ctx.moveTo(x + Config.CELL_SIZE, y);
+            ctx.lineTo(x + Config.CELL_SIZE, y + Config.CELL_SIZE);
         }
         if (this.walls.bottom) {
-            ctx.moveTo(x + cellSize, y + cellSize);
-            ctx.lineTo(x, y + cellSize);
+            ctx.moveTo(x + Config.CELL_SIZE, y + Config.CELL_SIZE);
+            ctx.lineTo(x, y + Config.CELL_SIZE);
         }
         if (this.walls.left) {
-            ctx.moveTo(x, y + cellSize);
+            ctx.moveTo(x, y + Config.CELL_SIZE);
             ctx.lineTo(x, y);
         }
 
@@ -67,7 +61,7 @@ class Cell {
         // Color visited cells
         if (this.visited) {
             ctx.fillStyle = 'rgba(0, 255, 0, 0.1)';
-            ctx.fillRect(x, y, cellSize, cellSize);
+            ctx.fillRect(x, y, Config.CELL_SIZE, Config.CELL_SIZE);
         }
     }
 }
