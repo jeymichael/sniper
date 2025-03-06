@@ -11,6 +11,14 @@ const rows = Math.floor(canvas.height / cellSize);
 const cols = Math.floor(canvas.width / cellSize);
 const grid = [];
 
+// Add Config class at the top of the file
+class Config {
+    static get CELL_SIZE() { return 30; }
+    static get BULLET_SPACING() { return 25; }
+    static get MAX_BULLETS() { return 100; }
+    // Add other static config values as needed
+}
+
 // Cell class to represent each position in the maze
 class Cell {
     constructor(row, col) {
@@ -68,8 +76,8 @@ class Settings {
         this.bulletSpeed = 2;
         this.bulletLifetime = 10000; // 10 seconds in milliseconds
         this.bulletFadeSteps = 4;   // Number of color steps before disappearing
-        this.bulletSpacing = 25;    // Move BULLET_SPACING here
-        this.maxBullets = 100;      // Move MAX_BULLETS here
+        this.bulletSpacing = Config.BULLET_SPACING;    // Move BULLET_SPACING here
+        this.maxBullets = Config.MAX_BULLETS;      // Move MAX_BULLETS here
 
         // Player settings
         this.playerRadius = 5;
@@ -166,8 +174,6 @@ class Bullet {
 
 // Add after other global variables at the top
 //let bullets = [];
-const BULLET_SPACING = 25;
-const MAX_BULLETS = 100;
 let animationId;
 
 // Add to global variables at the top
@@ -360,9 +366,9 @@ function initializeFirstBullet() {
 // Check if new bullet should be created
 function checkBulletCreation() {
     const settings = Settings.getInstance();
-    if (bullets.length < settings.maxBullets) {
+    if (bullets.length < Config.MAX_BULLETS) {
         const lastBullet = bullets[bullets.length - 1];
-        if ((canvas.height - lastBullet.y) >= settings.bulletSpacing) {
+        if ((canvas.height - lastBullet.y) >= Config.BULLET_SPACING) {
             const newBullet = new Bullet(player.x, player.y, player.direction);
             bullets.push(newBullet);
         }
@@ -465,8 +471,7 @@ setInterval(checkBulletExit, 100);
 
 // Modify the fireBullet function to always use player's current direction
 function fireBullet() {
-    const settings = Settings.getInstance();
-    if (bullets.length < settings.maxBullets) {
+    if (bullets.length < Config.MAX_BULLETS) {
         const newBullet = new Bullet(player.x, player.y, player.direction);
         bullets.push(newBullet);
     }
@@ -476,7 +481,7 @@ class Maze {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.cellSize = 30;
+        this.cellSize = Config.CELL_SIZE;
         this.rows = Math.floor(canvas.height / this.cellSize);
         this.cols = Math.floor(canvas.width / this.cellSize);
         this.grid = [];
