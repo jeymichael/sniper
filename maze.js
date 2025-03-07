@@ -17,11 +17,7 @@ const ctx = canvas.getContext('2d');
 canvas.width = Config.CANVAS_WIDTH;
 canvas.height = Config.CANVAS_HEIGHT;
 let animationId;
-// Add to global variables at the top
-let rotationState = {
-    clockwise: false,
-    counterClockwise: false
-};
+
 
 // Cell class to represent each position in the maze
 class Cell {
@@ -102,9 +98,10 @@ class Settings {
 
 // Add after the Cell class
 class Bullet {
-    constructor(startX, startY, direction) {
+    constructor(startX, startY, direction, maze) {
         this.x = startX;
         this.y = startY;
+        this.maze = maze;
         
         const settings = Settings.getInstance();
         this.radius = settings.bulletRadius;
@@ -114,7 +111,6 @@ class Bullet {
         this.dx = Math.cos(this.direction) * this.speed;
         this.dy = Math.sin(this.direction) * this.speed;
 
-        // Add lifetime tracking
         this.birthTime = Date.now();
         this.settings = Settings.getInstance();
         this.opacity = 1.0;
@@ -134,33 +130,29 @@ class Bullet {
         ctx.closePath();
     }
 
-    // Update checkCollision to use maze instance
     checkCollision() {
-        const col = Math.floor(this.x / maze.cellSize);
-        const row = Math.floor(this.y / maze.cellSize);
+        const col = Math.floor(this.x / this.maze.cellSize);
+        const row = Math.floor(this.y / this.maze.cellSize);
 
-        // Use maze's isInBounds method
-        if (!maze.isInBounds(row, col)) {
+        if (!this.maze.isInBounds(row, col)) {
             return;
         }
 
-        // Use maze's grid to get cell
-        const cell = maze.grid[row][col];
-        const relativeX = this.x % maze.cellSize;
-        const relativeY = this.y % maze.cellSize;
+        const cell = this.maze.grid[row][col];
+        const relativeX = this.x % this.maze.cellSize;
+        const relativeY = this.y % this.maze.cellSize;
 
-        // Check collision with walls using maze.cellSize
         if (cell.walls.top && relativeY <= this.radius) {
-            this.dy = Math.abs(this.dy); // Bounce down
+            this.dy = Math.abs(this.dy);
         }
-        if (cell.walls.bottom && relativeY >= maze.cellSize - this.radius) {
-            this.dy = -Math.abs(this.dy); // Bounce up
+        if (cell.walls.bottom && relativeY >= this.maze.cellSize - this.radius) {
+            this.dy = -Math.abs(this.dy);
         }
         if (cell.walls.left && relativeX <= this.radius) {
-            this.dx = Math.abs(this.dx); // Bounce right
+            this.dx = Math.abs(this.dx);
         }
-        if (cell.walls.right && relativeX >= maze.cellSize - this.radius) {
-            this.dx = -Math.abs(this.dx); // Bounce left
+        if (cell.walls.right && relativeX >= this.maze.cellSize - this.radius) {
+            this.dx = -Math.abs(this.dx);
         }
     }
 
@@ -170,7 +162,6 @@ class Bullet {
         this.y += this.dy;
     }
 
-    // Add method to check if bullet should be removed
     isDead() {
         return Date.now() - this.birthTime > this.settings.bulletLifetime;
     }
@@ -178,18 +169,20 @@ class Bullet {
 
 // Modify the Player class
 class Player {
-    constructor() {
+    constructor(maze) {
+        this.maze = maze;
+        
         // Start at the center of entrance cell (bottom-right)
-        this.x = maze.canvas.width - maze.cellSize/2;
-        this.y = maze.canvas.height - maze.cellSize/2;
+        this.x = this.maze.canvas.width - this.maze.cellSize/2;
+        this.y = this.maze.canvas.height - this.maze.cellSize/2;
         
         // Get settings from singleton
         const settings = Settings.getInstance();
         this.radius = settings.playerRadius;
         this.moveSpeed = settings.playerSpeed;
         this.color = '#00ff00';
-        this.arrowLength = this.radius * 1.5; // Length of direction indicator
-        this.direction = -3*Math.PI/4; // Initial direction (-45 degrees)
+        this.arrowLength = this.radius * 1.5;
+        this.direction = -3*Math.PI/4;
         this.hasExited = false;
         this.isRemoved = false;
     }
@@ -230,13 +223,12 @@ class Player {
 
     // Check if a move would result in wall collision
     canMove(newX, newY) {
-        // If player has started exiting, skip collision checks
         if (this.hasExited) {
             return true;
         }
 
         // Check if player is at exit (top-left)
-        if (this.y <= maze.cellSize && this.x <= maze.cellSize) {
+        if (this.y <= this.maze.cellSize && this.x <= this.maze.cellSize) {
             this.hasExited = true;
             Settings.getInstance().hasExited = true;
             this.playExitSound();
@@ -254,47 +246,45 @@ class Player {
         // Get cells that the player's circle intersects with
         const cells = {
             topLeft: {
-                col: Math.floor(bounds.left / maze.cellSize),
-                row: Math.floor(bounds.top / maze.cellSize)
+                col: Math.floor(bounds.left / this.maze.cellSize),
+                row: Math.floor(bounds.top / this.maze.cellSize)
             },
             topRight: {
-                col: Math.floor(bounds.right / maze.cellSize),
-                row: Math.floor(bounds.top / maze.cellSize)
+                col: Math.floor(bounds.right / this.maze.cellSize),
+                row: Math.floor(bounds.top / this.maze.cellSize)
             },
             bottomLeft: {
-                col: Math.floor(bounds.left / maze.cellSize),
-                row: Math.floor(bounds.bottom / maze.cellSize)
+                col: Math.floor(bounds.left / this.maze.cellSize),
+                row: Math.floor(bounds.bottom / this.maze.cellSize)
             },
             bottomRight: {
-                col: Math.floor(bounds.right / maze.cellSize),
-                row: Math.floor(bounds.bottom / maze.cellSize)
+                col: Math.floor(bounds.right / this.maze.cellSize),
+                row: Math.floor(bounds.bottom / this.maze.cellSize)
             }
         };
 
         // Check if any part of the player would be outside the maze
-        if (bounds.left < 0 || bounds.right > maze.canvas.width ||
-            bounds.top < 0 || bounds.bottom > maze.canvas.height) {
+        if (bounds.left < 0 || bounds.right > this.maze.canvas.width ||
+            bounds.top < 0 || bounds.bottom > this.maze.canvas.height) {
             return false;
         }
 
         // Check each cell the player's circle intersects with
         for (const cell of Object.values(cells)) {
-            // Skip if cell coordinates are outside the grid
-            if (!maze.isInBounds(cell.row, cell.col)) {
+            if (!this.maze.isInBounds(cell.row, cell.col)) {
                 continue;
             }
 
-            const currentCell = maze.grid[cell.row][cell.col];
-            const relativeX = newX - (cell.col * maze.cellSize);
-            const relativeY = newY - (cell.row * maze.cellSize);
+            const currentCell = this.maze.grid[cell.row][cell.col];
+            const relativeX = newX - (cell.col * this.maze.cellSize);
+            const relativeY = newY - (cell.row * this.maze.cellSize);
 
-            // Check collision with walls
             if (currentCell.walls.top && 
                 Math.abs(relativeY - 0) <= this.radius) {
                 return false;
             }
             if (currentCell.walls.bottom && 
-                Math.abs(relativeY - maze.cellSize) <= this.radius) {
+                Math.abs(relativeY - this.maze.cellSize) <= this.radius) {
                 return false;
             }
             if (currentCell.walls.left && 
@@ -302,7 +292,7 @@ class Player {
                 return false;
             }
             if (currentCell.walls.right && 
-                Math.abs(relativeX - maze.cellSize) <= this.radius) {
+                Math.abs(relativeX - this.maze.cellSize) <= this.radius) {
                 return false;
             }
         }
@@ -350,125 +340,14 @@ class Player {
     }
 }
 
-// Initialize first bullet
-function initializeFirstBullet() {
-    bullets = [];
-    const firstBullet = new Bullet(player.x, player.y, player.direction);
-    bullets.push(firstBullet);
-}
-
-// Check if new bullet should be created
-function checkBulletCreation() {
-    const settings = Settings.getInstance();
-    if (bullets.length < Config.MAX_BULLETS) {
-        const lastBullet = bullets[bullets.length - 1];
-        if ((canvas.height - lastBullet.y) >= Config.BULLET_SPACING) {
-            const newBullet = new Bullet(player.x, player.y, player.direction);
-            bullets.push(newBullet);
-        }
-    }
-}
-// Modify the checkBulletExit function to also remove dead bullets
-function checkBulletExit() {
-    bullets = bullets.filter(bullet => 
-        bullet.y >= 0 && !bullet.isDead()
-    );
-}
-
 // Modify the adjustSpeed function
 function adjustSpeed(newSpeed) {
-    // Convert string to number and clamp between limits
-    newSpeed = Math.max(0.5, Math.min(5, Number(newSpeed)));
-    
-    // Update settings
-    Settings.getInstance().bulletSpeed = newSpeed;
-    
-    // Update all bullets' speed while maintaining their directions
-    bullets.forEach(bullet => {
-        bullet.speed = newSpeed;
-        const angle = Math.atan2(bullet.dy, bullet.dx);
-        bullet.dx = Math.cos(angle) * newSpeed;
-        bullet.dy = Math.sin(angle) * newSpeed;
-    });
-    
-    // Update display
-    document.getElementById('speedValue').textContent = newSpeed.toFixed(1);
+    gameBoard.adjustSpeed(newSpeed);
 }
 
 // Modify the adjustRadius function
 function adjustRadius(newRadius) {
-    // Convert string to number and clamp between limits
-    newRadius = Math.max(2, Math.min(8, Number(newRadius)));
-    
-    // Update settings
-    Settings.getInstance().bulletRadius = newRadius;
-    
-    // Update all bullets' radius
-    bullets.forEach(bullet => {
-        bullet.radius = newRadius;
-    });
-    
-    document.getElementById('radiusValue').textContent = newRadius.toFixed(0);
-}
-
-// Modify event listener setup to check for test environment
-if (typeof document !== 'undefined') {
-    document.addEventListener('keypress', (e) => {
-        if (e.key === 'r' || e.key === 'R') {
-            initializeFirstBullet();
-        }
-    });
-
-    document.addEventListener('keydown', (e) => {
-        switch(e.key) {
-            case 'ArrowUp':
-                player.move(0, -1);
-                break;
-            case 'ArrowDown':
-                player.move(0, 1);
-                break;
-            case 'ArrowLeft':
-                player.move(-1, 0);
-                break;
-            case 'ArrowRight':
-                player.move(1, 0);
-                break;
-            case ' ': // Spacebar
-                fireBullet();
-                break;
-            case 'Shift':
-                // Start rotation based on which Shift key
-                if (e.location === KeyboardEvent.DOM_KEY_LOCATION_LEFT) {
-                    rotationState.counterClockwise = true;
-                } else if (e.location === KeyboardEvent.DOM_KEY_LOCATION_RIGHT) {
-                    rotationState.clockwise = true;
-                }
-                break;
-        }
-    });
-
-    document.addEventListener('keyup', (e) => {
-        if (e.key === 'Shift') {
-            if (e.location === KeyboardEvent.DOM_KEY_LOCATION_LEFT) {
-                rotationState.counterClockwise = false;
-            } else if (e.location === KeyboardEvent.DOM_KEY_LOCATION_RIGHT) {
-                rotationState.clockwise = false;
-            }
-        }
-    });
-}
-
-bullets = []; // Needed here! 
-
-// Add this to check for bullet exits in the animation loop
-setInterval(checkBulletExit, 100);
-
-// Modify the fireBullet function to always use player's current direction
-function fireBullet() {
-    if (bullets.length < Config.MAX_BULLETS) {
-        const newBullet = new Bullet(player.x, player.y, player.direction);
-        bullets.push(newBullet);
-    }
+    gameBoard.adjustRadius(newRadius);
 }
 
 class Maze {
@@ -582,36 +461,6 @@ class Maze {
     }
 }
 
-// Create maze instance
-const maze = new Maze(canvas);
-
-// Update drawMaze function
-function drawMaze() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    if (rotationState.clockwise) {
-        player.rotateClockwise();
-    }
-    if (rotationState.counterClockwise) {
-        player.rotateCounterClockwise();
-    }
-    
-    maze.draw();
-    player.draw();
-    
-    bullets.forEach(bullet => {
-        bullet.draw();
-        bullet.update();
-    });
-    
-    animationId = requestAnimationFrame(drawMaze);
-}
-
-// Initialize game objects
-player = new Player();
-bullets.length = 0;
-drawMaze();
-
 // Update exports
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
@@ -627,4 +476,176 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof document !== 'undefined') {
     canvas.width = Config.CANVAS_WIDTH;
     canvas.height = Config.CANVAS_HEIGHT;
-} 
+}
+
+class GameBoard {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.ctx = canvas.getContext('2d');
+        this.maze = new Maze(canvas);
+        this.player = new Player(this.maze);
+        this.bullets = [];
+        this.rotationState = {
+            clockwise: false,
+            counterClockwise: false
+        };
+    }
+
+    fireBullet() {
+        if (this.bullets.length < Config.MAX_BULLETS) {
+            const newBullet = new Bullet(
+                this.player.x, 
+                this.player.y, 
+                this.player.direction,
+                this.maze
+            );
+            this.bullets.push(newBullet);
+        }
+    }
+
+    initializeFirstBullet() {
+        this.bullets = [];
+        const firstBullet = new Bullet(
+            this.player.x, 
+            this.player.y, 
+            this.player.direction,
+            this.maze
+        );
+        this.bullets.push(firstBullet);
+    }
+
+    checkBulletCreation() {
+        if (this.bullets.length < Config.MAX_BULLETS) {
+            const lastBullet = this.bullets[this.bullets.length - 1];
+            if ((this.canvas.height - lastBullet.y) >= Config.BULLET_SPACING) {
+                const newBullet = new Bullet(
+                    this.player.x, 
+                    this.player.y, 
+                    this.player.direction,
+                    this.maze
+                );
+                this.bullets.push(newBullet);
+            }
+        }
+    }
+
+    checkBulletExit() {
+        this.bullets = this.bullets.filter(bullet => 
+            bullet.y >= 0 && !bullet.isDead()
+        );
+    }
+
+    update() {
+        if (this.rotationState.clockwise) {
+            this.player.rotateClockwise();
+        }
+        if (this.rotationState.counterClockwise) {
+            this.player.rotateCounterClockwise();
+        }
+
+        this.bullets.forEach(bullet => {
+            bullet.update();
+        });
+
+        this.checkBulletExit();
+    }
+
+    draw() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        this.maze.draw();
+        this.player.draw();
+        
+        this.bullets.forEach(bullet => {
+            bullet.draw();
+        });
+    }
+
+    adjustSpeed(newSpeed) {
+        newSpeed = Math.max(0.5, Math.min(5, Number(newSpeed)));
+        Settings.getInstance().bulletSpeed = newSpeed;
+        
+        this.bullets.forEach(bullet => {
+            bullet.speed = newSpeed;
+            const angle = Math.atan2(bullet.dy, bullet.dx);
+            bullet.dx = Math.cos(angle) * newSpeed;
+            bullet.dy = Math.sin(angle) * newSpeed;
+        });
+        
+        if (typeof document !== 'undefined') {
+            document.getElementById('speedValue').textContent = newSpeed.toFixed(1);
+        }
+    }
+
+    adjustRadius(newRadius) {
+        newRadius = Math.max(2, Math.min(8, Number(newRadius)));
+        Settings.getInstance().bulletRadius = newRadius;
+        
+        this.bullets.forEach(bullet => {
+            bullet.radius = newRadius;
+        });
+        
+        if (typeof document !== 'undefined') {
+            document.getElementById('radiusValue').textContent = newRadius.toFixed(0);
+        }
+    }
+}
+
+// Update initialization code
+const gameBoard = new GameBoard(canvas);
+
+// Update drawMaze function to use GameBoard
+function drawMaze() {
+    gameBoard.update();
+    gameBoard.draw();
+    animationId = requestAnimationFrame(drawMaze);
+}
+
+// Update event listeners to use GameBoard
+if (typeof document !== 'undefined') {
+    document.addEventListener('keypress', (e) => {
+        if (e.key === 'r' || e.key === 'R') {
+            gameBoard.initializeFirstBullet();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        switch(e.key) {
+            case 'ArrowUp':
+                gameBoard.player.move(0, -1);
+                break;
+            case 'ArrowDown':
+                gameBoard.player.move(0, 1);
+                break;
+            case 'ArrowLeft':
+                gameBoard.player.move(-1, 0);
+                break;
+            case 'ArrowRight':
+                gameBoard.player.move(1, 0);
+                break;
+            case ' ': // Spacebar
+                gameBoard.fireBullet();
+                break;
+            case 'Shift':
+                if (e.location === KeyboardEvent.DOM_KEY_LOCATION_LEFT) {
+                    gameBoard.rotationState.counterClockwise = true;
+                } else if (e.location === KeyboardEvent.DOM_KEY_LOCATION_RIGHT) {
+                    gameBoard.rotationState.clockwise = true;
+                }
+                break;
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (e.key === 'Shift') {
+            if (e.location === KeyboardEvent.DOM_KEY_LOCATION_LEFT) {
+                gameBoard.rotationState.counterClockwise = false;
+            } else if (e.location === KeyboardEvent.DOM_KEY_LOCATION_RIGHT) {
+                gameBoard.rotationState.clockwise = false;
+            }
+        }
+    });
+}
+
+// Start the game
+drawMaze(); 

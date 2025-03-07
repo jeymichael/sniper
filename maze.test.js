@@ -50,11 +50,13 @@ const { Player, Cell, Bullet, Settings, Maze } = require('./maze.js');
 
 describe('Player Class', () => {
     let player;
+    let maze;
     
     beforeEach(() => {
         // Reset Settings singleton
         Settings.instance = null;
-        player = new Player();
+        maze = new Maze(mockCanvas);
+        player = new Player(maze);
     });
 
     test('initializes with correct default values', () => {
@@ -149,10 +151,12 @@ describe('Cell Class', () => {
 
 describe('Bullet Class', () => {
     let bullet;
+    let maze;
 
     beforeEach(() => {
         Settings.instance = null;
-        bullet = new Bullet(150, 150, -Math.PI/2);
+        maze = new Maze(mockCanvas);
+        bullet = new Bullet(150, 150, -Math.PI/2, maze);
     });
 
     test('initializes with correct values', () => {
