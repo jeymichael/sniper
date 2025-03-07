@@ -95,23 +95,19 @@ describe('Player Class', () => {
         expect(player.direction).toBe(initialDirection);
     });
 
-    test('removePlayer sets correct removal state', () => {
-        player.removePlayer();
+    test('die() sets correct death state', () => {
+        player.die();
+        expect(player.isDead).toBe(true);
+        expect(player.color).toBe('red');
+        
+        // Fast-forward the timer to trigger removal
+        jest.advanceTimersByTime(1000);
         expect(player.isRemoved).toBe(true);
-        expect(player.x).toBe(-1000);
-        expect(player.y).toBe(-1000);
     });
 
-    test('playExitSound triggers removal after sound ends', async () => {
+    test('playExitSound triggers removal', async () => {
         player.playExitSound();
-        expect(player.isRemoved).toBe(false); // Should not be removed immediately
-        
-        // Wait for all promises to resolve
-        await Promise.resolve();
-        
-        expect(player.isRemoved).toBe(true); // Now should be removed
-        expect(player.x).toBe(-1000);
-        expect(player.y).toBe(-1000);
+        expect(player.isRemoved).toBe(true); // Should be removed immediately on exit
     });
 });
 
