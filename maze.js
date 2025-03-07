@@ -13,7 +13,16 @@ class Config {
     static get BUG_RADIUS() { return 3; }
     static get BUG_SPEED() { return 1; }
     static get POINTS_PER_BUG() { return 10; }
-    static get BUG_KILL_SOUND() { 
+    static get BUG_KILL_SOUND() {
+        if (typeof window === 'undefined' || typeof window.AudioContext === 'undefined') {
+            // Return mock sound object for test environment
+            return {
+                play: function() {
+                    // Do nothing in test environment
+                }
+            };
+        }
+        
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         return {
             play: function() {
@@ -34,6 +43,15 @@ class Config {
     }
 
     static get EXIT_SOUND() {
+        if (typeof window === 'undefined' || typeof window.AudioContext === 'undefined') {
+            // Return mock sound object for test environment
+            return {
+                play: function() {
+                    // Do nothing in test environment
+                }
+            };
+        }
+
         const audioContext = new (window.AudioContext || window.webkitAudioContext)();
         return {
             play: function() {
@@ -44,14 +62,13 @@ class Config {
                 gainNode.connect(audioContext.destination);
                 
                 oscillator.type = 'sine';
-                oscillator.frequency.value = 440; // Different frequency for exit
+                oscillator.frequency.value = 440;
                 gainNode.gain.value = 0.2;
                 
-                // Play ascending tone
                 oscillator.start();
                 oscillator.frequency.linearRampToValueAtTime(
-                    880, // End frequency
-                    audioContext.currentTime + 0.5 // Duration
+                    880,
+                    audioContext.currentTime + 0.5
                 );
                 setTimeout(() => oscillator.stop(), 500);
             }
@@ -733,10 +750,12 @@ class GameBoard {
             bullet.draw();
         });
 
-        // Draw score
-        this.ctx.fillStyle = 'black';
-        this.ctx.font = '16px Arial';
-        this.ctx.fillText(`Score: ${this.score}`, 10, 20);
+        // Draw score only if not in test environment
+        if (typeof document !== 'undefined') {
+            this.ctx.fillStyle = 'black';
+            this.ctx.font = '16px Arial';
+            this.ctx.fillText(`Score: ${this.score}`, 10, 20);
+        }
     }
 
     adjustSpeed(newSpeed) {

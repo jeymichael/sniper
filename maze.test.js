@@ -12,6 +12,8 @@ const mockCtx = {
     lineWidth: 1,
     clearRect: jest.fn(),
     fillRect: jest.fn(),
+    font: '',
+    fillText: jest.fn(),
 };
 
 const mockCanvas = {
