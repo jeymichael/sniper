@@ -16,6 +16,12 @@ const ctx = canvas.getContext('2d');
 // Set canvas size
 canvas.width = Config.CANVAS_WIDTH;
 canvas.height = Config.CANVAS_HEIGHT;
+let animationId;
+// Add to global variables at the top
+let rotationState = {
+    clockwise: false,
+    counterClockwise: false
+};
 
 // Cell class to represent each position in the maze
 class Cell {
@@ -169,16 +175,6 @@ class Bullet {
         return Date.now() - this.birthTime > this.settings.bulletLifetime;
     }
 }
-
-// Add after other global variables at the top
-//let bullets = [];
-let animationId;
-
-// Add to global variables at the top
-let rotationState = {
-    clockwise: false,
-    counterClockwise: false
-};
 
 // Modify the Player class
 class Player {
