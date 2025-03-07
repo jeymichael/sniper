@@ -7,7 +7,11 @@ class Config {
     static get CANVAS_HEIGHT() { return 300; }
     static get ROWS() { return Math.floor(this.CANVAS_HEIGHT / this.CELL_SIZE); }
     static get COLS() { return Math.floor(this.CANVAS_WIDTH / this.CELL_SIZE); }
-    // Add other static config values as needed
+    
+    // Add bug-related constants
+    static get BUG_SPAWN_TIME() { return 5000; }  // 5 seconds in milliseconds
+    static get BUG_RADIUS() { return 3; }
+    static get BUG_SPEED() { return 1; }
 }
 
 const canvas = document.getElementById('mazeCanvas');
@@ -478,6 +482,103 @@ if (typeof document !== 'undefined') {
     canvas.height = Config.CANVAS_HEIGHT;
 }
 
+
+class Bug {
+    constructor(x, y, maze) {
+        this.x = x;
+        this.y = y;
+        this.maze = maze;
+        this.radius = Config.BUG_RADIUS;  // Use Config
+        this.speed = Config.BUG_SPEED;    // Use Config
+        this.direction = Math.random() * Math.PI * 2;
+        this.dx = Math.cos(this.direction) * this.speed;
+        this.dy = Math.sin(this.direction) * this.speed;
+    }
+
+    draw(ctx) {
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'purple';
+        ctx.fill();
+        ctx.closePath();
+    }
+
+    update() {
+        // Check wall collision and update direction
+        const col = Math.floor(this.x / this.maze.cellSize);
+        const row = Math.floor(this.y / this.maze.cellSize);
+
+        if (this.maze.isInBounds(row, col)) {
+            const cell = this.maze.grid[row][col];
+            const relativeX = this.x % this.maze.cellSize;
+            const relativeY = this.y % this.maze.cellSize;
+
+            if (cell.walls.top && relativeY <= this.radius) {
+                this.dy = Math.abs(this.dy);
+                this.direction = Math.random() * Math.PI; // New random direction
+            }
+            if (cell.walls.bottom && relativeY >= this.maze.cellSize - this.radius) {
+                this.dy = -Math.abs(this.dy);
+                this.direction = Math.random() * Math.PI;
+            }
+            if (cell.walls.left && relativeX <= this.radius) {
+                this.dx = Math.abs(this.dx);
+                this.direction = Math.random() * Math.PI;
+            }
+            if (cell.walls.right && relativeX >= this.maze.cellSize - this.radius) {
+                this.dx = -Math.abs(this.dx);
+                this.direction = Math.random() * Math.PI;
+            }
+        }
+
+        // Update position
+        this.x += this.dx;
+        this.y += this.dy;
+    }
+}
+
+class BugNest {
+    constructor(maze) {
+        this.maze = maze;
+        this.bugs = [];
+        this.lastSpawnTime = Date.now();
+        
+        // Find random position (not at entrance)
+        do {
+            const row = Math.floor(Math.random() * maze.rows);
+            const col = Math.floor(Math.random() * maze.cols);
+            if (row !== maze.rows - 1 || col !== maze.cols - 1) {
+                this.x = col * maze.cellSize + maze.cellSize / 2;
+                this.y = row * maze.cellSize + maze.cellSize / 2;
+                break;
+            }
+        } while (true);
+    }
+
+    draw(ctx) {
+        // Draw nest
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = 'brown';
+        ctx.fill();
+        ctx.closePath();
+
+        // Draw bugs
+        this.bugs.forEach(bug => bug.draw(ctx));
+    }
+
+    update() {
+        // Use Config.BUG_SPAWN_TIME
+        const currentTime = Date.now();
+        if (currentTime - this.lastSpawnTime >= Config.BUG_SPAWN_TIME) {
+            this.bugs.push(new Bug(this.x, this.y, this.maze));
+            this.lastSpawnTime = currentTime;
+        }
+
+        this.bugs.forEach(bug => bug.update());
+    }
+} 
+
 class GameBoard {
     constructor(canvas) {
         this.canvas = canvas;
@@ -485,6 +586,7 @@ class GameBoard {
         this.maze = new Maze(canvas);
         this.player = new Player(this.maze);
         this.bullets = [];
+        this.bugNest = new BugNest(this.maze);  // Add bugNest
         this.rotationState = {
             clockwise: false,
             counterClockwise: false
@@ -547,6 +649,7 @@ class GameBoard {
             bullet.update();
         });
 
+        this.bugNest.update();  // Update bugNest
         this.checkBulletExit();
     }
 
@@ -554,6 +657,7 @@ class GameBoard {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
         this.maze.draw();
+        this.bugNest.draw(this.ctx);  // Draw bugNest and its bugs
         this.player.draw();
         
         this.bullets.forEach(bullet => {
