@@ -74,6 +74,36 @@ class Config {
             }
         };
     }
+
+    static get PLAYER_DEATH_SOUND() {
+        if (typeof window === 'undefined' || typeof window.AudioContext === 'undefined') {
+            return {
+                play: function() { /* Do nothing in test environment */ }
+            };
+        }
+
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        return {
+            play: function() {
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.type = 'sine';
+                oscillator.frequency.value = 200; // Lower frequency for death
+                gainNode.gain.value = 0.2;
+                
+                oscillator.start();
+                oscillator.frequency.linearRampToValueAtTime(
+                    50, // End with very low frequency
+                    audioContext.currentTime + 1.0
+                );
+                setTimeout(() => oscillator.stop(), 1000);
+            }
+        };
+    }
 }
 
 const canvas = document.getElementById('mazeCanvas');
@@ -252,6 +282,8 @@ class Player {
         this.hasExited = false;
         this.isRemoved = false;
         this.exitSound = Config.EXIT_SOUND;
+        this.isDead = false;
+        this.deathSound = Config.PLAYER_DEATH_SOUND;
     }
 
     draw() {
@@ -394,6 +426,19 @@ class Player {
         } catch (e) {
             console.log('Exit sound play failed:', e);
             this.isRemoved = true;
+        }
+    }
+
+    die() {
+        if (!this.isDead) {
+            this.isDead = true;
+            try {
+                this.deathSound.play();
+            } catch (e) {
+                console.log('Death sound play failed:', e);
+            }
+            this.color = 'red'; // Change color to indicate death
+            setTimeout(() => this.isRemoved = true, 1000); // Remove after 1 second
         }
     }
 }
@@ -650,6 +695,9 @@ class GameBoard {
     }
 
     fireBullet() {
+        // Don't fire if player is dead or removed
+        if (this.player.isDead || this.player.isRemoved) return;
+
         if (this.bullets.length < Config.MAX_BULLETS) {
             const newBullet = new Bullet(
                 this.player.x, 
@@ -662,6 +710,9 @@ class GameBoard {
     }
 
     initializeFirstBullet() {
+        // Don't initialize if player is dead or removed
+        if (this.player.isDead || this.player.isRemoved) return;
+
         this.bullets = [];
         const firstBullet = new Bullet(
             this.player.x, 
@@ -722,6 +773,21 @@ class GameBoard {
         }
     }
 
+    checkPlayerBugCollisions() {
+        if (this.player.isDead || this.player.isRemoved) return;
+
+        for (const bug of this.bugNest.bugs) {
+            const dx = this.player.x - bug.x;
+            const dy = this.player.y - bug.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < (this.player.radius + bug.radius)) {
+                this.player.die();
+                break;
+            }
+        }
+    }
+
     update() {
         if (this.rotationState.clockwise) {
             this.player.rotateClockwise();
@@ -736,7 +802,8 @@ class GameBoard {
 
         this.bugNest.update();
         this.checkBulletExit();
-        this.checkBulletBugCollisions();  // Add collision check
+        this.checkBulletBugCollisions();
+        this.checkPlayerBugCollisions();  // Add player-bug collision check
     }
 
     draw() {
