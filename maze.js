@@ -12,7 +12,7 @@ class Config {
     // Add bug-related constants
     static get BUG_SPAWN_TIME() { return 5000; }  // 5 seconds in milliseconds
     static get BUG_RADIUS() { return 3; }
-    static get BUG_SPEED() { return 1; }
+    static get BUG_SPEED() { return 0.25; }
     static get POINTS_PER_BUG() { return 10; }
     static get BUGNEST_CREATION_DELAY() { return 3000; } // Initial delay before first nest
     static get BUGNEST_CREATION_INTERVAL() { return 10000; } // Interval between new nests
