@@ -329,6 +329,100 @@ describe('Maze Class', () => {
     });
 });
 
+describe('Maze.findPath', () => {
+    let maze;
+    
+    beforeEach(() => {
+        maze = new Maze(mockCanvas);
+    });
+
+    test('finds path from entrance to exit', () => {
+        const path = maze.findPath(maze.rows - 1, maze.cols - 1, 0, 0);
+        expect(path).not.toBeNull();
+        expect(path.length).toBeGreaterThan(0);
+        expect(path[0]).toEqual({row: maze.rows - 1, col: maze.cols - 1}); // Start
+        expect(path[path.length - 1]).toEqual({row: 0, col: 0}); // End
+    });
+
+    test('finds path between adjacent cells without walls', () => {
+        // Remove wall between (1,1) and (1,2)
+        maze.grid[1][1].walls.right = false;
+        maze.grid[1][2].walls.left = false;
+
+        const path = maze.findPath(1, 1, 1, 2);
+        expect(path).not.toBeNull();
+        expect(path).toEqual([
+            {row: 1, col: 1},
+            {row: 1, col: 2}
+        ]);
+    });
+
+    test('returns null when no path exists', () => {
+        // Create a cell surrounded by walls
+        const row = 1, col = 1;
+        maze.grid[row][col].walls = {top: true, right: true, bottom: true, left: true};
+        maze.grid[row-1][col].walls.bottom = true;
+        maze.grid[row][col+1].walls.left = true;
+        maze.grid[row+1][col].walls.top = true;
+        maze.grid[row][col-1].walls.right = true;
+
+        const path = maze.findPath(row, col, row + 1, col);
+        expect(path).toBeNull();
+    });
+
+    test('handles boundary conditions', () => {
+        // Test path to out-of-bounds cell
+        expect(maze.findPath(0, 0, -1, 0)).toBeNull();
+        expect(maze.findPath(0, 0, 0, maze.cols)).toBeNull();
+        expect(maze.findPath(0, 0, maze.rows, 0)).toBeNull();
+        expect(maze.findPath(0, 0, 0, -1)).toBeNull();
+        
+        // Test path from out-of-bounds cell
+        expect(maze.findPath(-1, 0, 0, 0)).toBeNull();
+        expect(maze.findPath(0, maze.cols, 0, 0)).toBeNull();
+        expect(maze.findPath(maze.rows, 0, 0, 0)).toBeNull();
+        expect(maze.findPath(0, -1, 0, 0)).toBeNull();
+
+        // Test path with both points out of bounds
+        expect(maze.findPath(-1, -1, maze.rows, maze.cols)).toBeNull();
+        expect(maze.findPath(maze.rows, maze.cols, -1, -1)).toBeNull();
+
+        // Test edge cases (exactly at boundaries)
+        expect(maze.findPath(0, 0, maze.rows - 1, maze.cols - 1)).not.toBeNull();
+        expect(maze.findPath(maze.rows - 1, maze.cols - 1, 0, 0)).not.toBeNull();
+    });
+
+    test('path follows valid cell connections', () => {
+        const path = maze.findPath(maze.rows - 1, maze.cols - 1, 0, 0);
+        
+        // Check that each consecutive pair of cells in the path is actually connected
+        for (let i = 0; i < path.length - 1; i++) {
+            const current = path[i];
+            const next = path[i + 1];
+            
+            // Cells should be adjacent
+            const rowDiff = Math.abs(current.row - next.row);
+            const colDiff = Math.abs(current.col - next.col);
+            expect(rowDiff + colDiff).toBe(1); // Only one coordinate should differ by 1
+            
+            // Check that there is no wall between cells
+            if (next.row < current.row) {
+                expect(maze.grid[current.row][current.col].walls.top).toBe(false);
+                expect(maze.grid[next.row][next.col].walls.bottom).toBe(false);
+            } else if (next.row > current.row) {
+                expect(maze.grid[current.row][current.col].walls.bottom).toBe(false);
+                expect(maze.grid[next.row][next.col].walls.top).toBe(false);
+            } else if (next.col < current.col) {
+                expect(maze.grid[current.row][current.col].walls.left).toBe(false);
+                expect(maze.grid[next.row][next.col].walls.right).toBe(false);
+            } else if (next.col > current.col) {
+                expect(maze.grid[current.row][current.col].walls.right).toBe(false);
+                expect(maze.grid[next.row][next.col].walls.left).toBe(false);
+            }
+        }
+    });
+});
+
 // Add test setup and teardown
 beforeAll(() => {
     jest.useFakeTimers();

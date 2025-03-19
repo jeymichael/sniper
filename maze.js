@@ -560,6 +560,11 @@ class Maze {
     }
 
     findPath(startRow, startCol, endRow, endCol) {
+        // Check if start and end points are within bounds
+        if (!this.isInBounds(startRow, startCol) || !this.isInBounds(endRow, endCol)) {
+            return null;
+        }
+
         const visited = Array(this.rows).fill().map(() => Array(this.cols).fill(false));
         const queue = [{row: startRow, col: startCol, path: [{row: startRow, col: startCol}]}];
         visited[startRow][startCol] = true;
