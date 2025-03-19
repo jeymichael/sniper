@@ -13,6 +13,8 @@ class Config {
     static get BUG_RADIUS() { return 3; }
     static get BUG_SPEED() { return 1; }
     static get POINTS_PER_BUG() { return 10; }
+    static get BUGNEST_CREATION_DELAY() { return 3000; } // Initial delay before first nest
+    static get BUGNEST_CREATION_INTERVAL() { return 10000; } // Interval between new nests
     static get BUG_KILL_SOUND() {
         if (typeof window === 'undefined' || typeof window.AudioContext === 'undefined') {
             // Return mock sound object for test environment
@@ -745,7 +747,7 @@ class GameBoard {
         this.maze = new Maze(canvas);
         this.player = new Player(this.maze);
         this.bullets = [];
-        this.bugNest = null;  // Initialize as null
+        this.bugNests = [];  // Array to hold multiple nests
         this.rotationState = {
             clockwise: false,
             counterClockwise: false
@@ -753,6 +755,7 @@ class GameBoard {
         this.score = 0;
         this.bugKillSound = Config.BUG_KILL_SOUND;
         this.gameStartTime = Date.now();
+        this.lastNestCreationTime = Date.now();
     }
 
     fireBullet() {
@@ -815,21 +818,24 @@ class GameBoard {
 
     checkBulletBugCollisions() {
         for (let bullet of this.bullets) {
-            const initialBugCount = this.bugNest.bugs.length;
-            
-            this.bugNest.bugs = this.bugNest.bugs.filter(bug => {
-                const dx = bullet.x - bug.x;
-                const dy = bullet.y - bug.y;
-                const distance = Math.sqrt(dx * dx + dy * dy);
+            // Check collisions with bugs from all nests
+            for (let nest of this.bugNests) {
+                const initialBugCount = nest.bugs.length;
                 
-                return distance > (bullet.radius + bug.radius);
-            });
+                nest.bugs = nest.bugs.filter(bug => {
+                    const dx = bullet.x - bug.x;
+                    const dy = bullet.y - bug.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    return distance > (bullet.radius + bug.radius);
+                });
 
-            // Play sound and add points for each bug killed
-            const bugsKilled = initialBugCount - this.bugNest.bugs.length;
-            if (bugsKilled > 0) {
-                this.playBugKillSound();
-                this.score += bugsKilled * Config.POINTS_PER_BUG;
+                // Play sound and add points for each bug killed
+                const bugsKilled = initialBugCount - nest.bugs.length;
+                if (bugsKilled > 0) {
+                    this.playBugKillSound();
+                    this.score += bugsKilled * Config.POINTS_PER_BUG;
+                }
             }
         }
     }
@@ -837,22 +843,34 @@ class GameBoard {
     checkPlayerBugCollisions() {
         if (this.player.isDead || this.player.isRemoved) return;
 
-        for (const bug of this.bugNest.bugs) {
-            const dx = this.player.x - bug.x;
-            const dy = this.player.y - bug.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance < (this.player.radius + bug.radius)) {
-                this.player.die();
-                break;
+        for (const nest of this.bugNests) {
+            for (const bug of nest.bugs) {
+                const dx = this.player.x - bug.x;
+                const dy = this.player.y - bug.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < (this.player.radius + bug.radius)) {
+                    this.player.die();
+                    return;
+                }
             }
         }
     }
 
     update() {
-        // Create BugNest after 3 seconds
-        if (!this.bugNest && Date.now() - this.gameStartTime >= 3000) {
-            this.bugNest = new BugNest(this.maze);
+        const currentTime = Date.now();
+        
+        // Create first BugNest after initial delay
+        if (this.bugNests.length === 0 && 
+            currentTime - this.gameStartTime >= Config.BUGNEST_CREATION_DELAY) {
+            this.bugNests.push(new BugNest(this.maze));
+            this.lastNestCreationTime = currentTime;
+        }
+        
+        // Create additional BugNests at regular intervals
+        if (currentTime - this.lastNestCreationTime >= Config.BUGNEST_CREATION_INTERVAL) {
+            this.bugNests.push(new BugNest(this.maze));
+            this.lastNestCreationTime = currentTime;
         }
 
         if (this.rotationState.clockwise) {
@@ -866,8 +884,9 @@ class GameBoard {
             bullet.update();
         });
 
-        if (this.bugNest) {
-            this.bugNest.update();
+        // Update all nests
+        if (this.bugNests.length > 0) {
+            this.bugNests.forEach(nest => nest.update());
             this.checkBulletExit();
             this.checkBulletBugCollisions();
             this.checkPlayerBugCollisions();
@@ -878,9 +897,8 @@ class GameBoard {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
         this.maze.draw();
-        if (this.bugNest) {
-            this.bugNest.draw(this.ctx);
-        }
+        // Draw all nests
+        this.bugNests.forEach(nest => nest.draw(this.ctx));
         this.player.draw();
         
         this.bullets.forEach(bullet => {
