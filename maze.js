@@ -946,39 +946,39 @@ if (typeof document !== 'undefined') {
     });
 
     document.addEventListener('keydown', (e) => {
-        switch(e.key) {
-            case 'ArrowUp':
+        switch(e.key.toLowerCase()) {
+            case 'arrowup':
                 gameBoard.player.move(0, -1);
                 break;
-            case 'ArrowDown':
+            case 'arrowdown':
                 gameBoard.player.move(0, 1);
                 break;
-            case 'ArrowLeft':
+            case 'arrowleft':
                 gameBoard.player.move(-1, 0);
                 break;
-            case 'ArrowRight':
+            case 'arrowright':
                 gameBoard.player.move(1, 0);
                 break;
             case ' ': // Spacebar
                 gameBoard.fireBullet();
                 break;
-            case 'Shift':
-                if (e.location === KeyboardEvent.DOM_KEY_LOCATION_LEFT) {
-                    gameBoard.rotationState.counterClockwise = true;
-                } else if (e.location === KeyboardEvent.DOM_KEY_LOCATION_RIGHT) {
-                    gameBoard.rotationState.clockwise = true;
-                }
+            case 'z':
+                gameBoard.rotationState.counterClockwise = true;
+                break;
+            case 'x':
+                gameBoard.rotationState.clockwise = true;
                 break;
         }
     });
 
     document.addEventListener('keyup', (e) => {
-        if (e.key === 'Shift') {
-            if (e.location === KeyboardEvent.DOM_KEY_LOCATION_LEFT) {
+        switch(e.key.toLowerCase()) {
+            case 'z':
                 gameBoard.rotationState.counterClockwise = false;
-            } else if (e.location === KeyboardEvent.DOM_KEY_LOCATION_RIGHT) {
+                break;
+            case 'x':
                 gameBoard.rotationState.clockwise = false;
-            }
+                break;
         }
     });
 
