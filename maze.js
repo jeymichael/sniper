@@ -870,6 +870,19 @@ class GameBoard {
             // Position the score in the middle of the score area
             const scoreY = Config.MAZE_HEIGHT + (Config.SCORE_AREA_HEIGHT / 2) + 8; // +8 for vertical text alignment
             this.ctx.fillText(`Score: ${this.score}`, Config.MAZE_WIDTH / 2, scoreY);
+
+            // Display success message if player has exited
+            if (this.player.hasExited) {
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                this.ctx.fillStyle = '#00ff00';
+                this.ctx.font = 'bold 36px Arial';
+                this.ctx.fillText('SUCCESS!', Config.MAZE_WIDTH / 2, Config.MAZE_HEIGHT / 2 - 20);
+                
+                this.ctx.font = '24px Arial';
+                this.ctx.fillText(`Final Score: ${this.score}`, Config.MAZE_WIDTH / 2, Config.MAZE_HEIGHT / 2 + 20);
+            }
         }
     }
 

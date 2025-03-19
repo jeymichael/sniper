@@ -48,14 +48,6 @@
             border-radius: 4px;
             font-weight: bold;
         }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        #successMessage {
-            animation: fadeIn 1s ease-in;
-        }
     </style>
 </head>
 <body>
@@ -87,18 +79,7 @@
                 <span id="radiusValue" class="value-display">3</span>
             </div>
         </div>
-        <div id="successMessage" style="display: none; color: green; font-weight: bold; margin-top: 20px;">
-            Congratulations! You've survived the maze! 🎉
-        </div>
     </div>
     <script src="maze.js"></script>
-    <script>
-        // Add observer for exit state
-        setInterval(() => {
-            const hasExited = Settings.getInstance().hasExited;
-            document.getElementById('successMessage').style.display = 
-                hasExited ? 'block' : 'none';
-        }, 100);
-    </script>
 </body>
 </html> 
