@@ -558,6 +558,46 @@ class Maze {
             }
         }
     }
+
+    findPath(startRow, startCol, endRow, endCol) {
+        const visited = Array(this.rows).fill().map(() => Array(this.cols).fill(false));
+        const queue = [{row: startRow, col: startCol, path: [{row: startRow, col: startCol}]}];
+        visited[startRow][startCol] = true;
+
+        const directions = [
+            ['top', -1, 0],
+            ['right', 0, 1],
+            ['bottom', 1, 0],
+            ['left', 0, -1]
+        ];
+
+        while (queue.length > 0) {
+            const {row, col, path} = queue.shift();
+            
+            if (row === endRow && col === endCol) {
+                return path;
+            }
+
+            for (const [wall, rowOffset, colOffset] of directions) {
+                const newRow = row + rowOffset;
+                const newCol = col + colOffset;
+
+                if (this.isInBounds(newRow, newCol) && !visited[newRow][newCol]) {
+                    const cell = this.grid[row][col];
+                    if (!cell.walls[wall]) {
+                        visited[newRow][newCol] = true;
+                        queue.push({
+                            row: newRow,
+                            col: newCol,
+                            path: [...path, {row: newRow, col: newCol}]
+                        });
+                    }
+                }
+            }
+        }
+
+        return null; // No path found
+    }
 }
 
 // Update exports
@@ -638,16 +678,35 @@ class BugNest {
         this.bugs = [];
         this.lastSpawnTime = Date.now();
         
-        // Find random position (not at entrance)
-        do {
-            const row = Math.floor(Math.random() * maze.rows);
-            const col = Math.floor(Math.random() * maze.cols);
-            if (row !== maze.rows - 1 || col !== maze.cols - 1) {
-                this.x = col * maze.cellSize + maze.cellSize / 2;
-                this.y = row * maze.cellSize + maze.cellSize / 2;
-                break;
-            }
-        } while (true);
+        // Find a valid position on the path from entrance to exit
+        const startRow = this.maze.rows - 1;
+        const startCol = this.maze.cols - 1;
+        const endRow = 0;
+        const endCol = 0;
+        
+        const path = this.maze.findPath(startRow, startCol, endRow, endCol);
+        if (path) {
+            // Choose a random position from the middle third of the path
+            const startIndex = Math.floor(path.length / 3);
+            const endIndex = Math.floor(2 * path.length / 3);
+            const randomIndex = startIndex + Math.floor(Math.random() * (endIndex - startIndex));
+            const position = path[randomIndex];
+            
+            // Convert grid position to pixel coordinates (center of cell)
+            this.x = position.col * maze.cellSize + maze.cellSize / 2;
+            this.y = position.row * maze.cellSize + maze.cellSize / 2;
+        } else {
+            // Fallback to a random position if no path found (shouldn't happen in a valid maze)
+            do {
+                const row = Math.floor(Math.random() * maze.rows);
+                const col = Math.floor(Math.random() * maze.cols);
+                if (row !== maze.rows - 1 || col !== maze.cols - 1) {
+                    this.x = col * maze.cellSize + maze.cellSize / 2;
+                    this.y = row * maze.cellSize + maze.cellSize / 2;
+                    break;
+                }
+            } while (true);
+        }
     }
 
     draw(ctx) {
@@ -681,13 +740,14 @@ class GameBoard {
         this.maze = new Maze(canvas);
         this.player = new Player(this.maze);
         this.bullets = [];
-        this.bugNest = new BugNest(this.maze);  // Add bugNest
+        this.bugNest = null;  // Initialize as null
         this.rotationState = {
             clockwise: false,
             counterClockwise: false
         };
         this.score = 0;
         this.bugKillSound = Config.BUG_KILL_SOUND;
+        this.gameStartTime = Date.now();
     }
 
     fireBullet() {
@@ -785,6 +845,11 @@ class GameBoard {
     }
 
     update() {
+        // Create BugNest after 3 seconds
+        if (!this.bugNest && Date.now() - this.gameStartTime >= 3000) {
+            this.bugNest = new BugNest(this.maze);
+        }
+
         if (this.rotationState.clockwise) {
             this.player.rotateClockwise();
         }
@@ -796,17 +861,21 @@ class GameBoard {
             bullet.update();
         });
 
-        this.bugNest.update();
-        this.checkBulletExit();
-        this.checkBulletBugCollisions();
-        this.checkPlayerBugCollisions();  // Add player-bug collision check
+        if (this.bugNest) {
+            this.bugNest.update();
+            this.checkBulletExit();
+            this.checkBulletBugCollisions();
+            this.checkPlayerBugCollisions();
+        }
     }
 
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
         this.maze.draw();
-        this.bugNest.draw(this.ctx);
+        if (this.bugNest) {
+            this.bugNest.draw(this.ctx);
+        }
         this.player.draw();
         
         this.bullets.forEach(bullet => {
