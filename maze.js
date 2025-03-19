@@ -235,16 +235,45 @@ class Bullet {
         const relativeX = this.x % this.maze.cellSize;
         const relativeY = this.y % this.maze.cellSize;
 
-        if (cell.walls.top && relativeY <= this.radius) {
+        // Check current cell's walls
+        let collisionTop = cell.walls.top && relativeY <= this.radius;
+        let collisionBottom = cell.walls.bottom && relativeY >= this.maze.cellSize - this.radius;
+        let collisionLeft = cell.walls.left && relativeX <= this.radius;
+        let collisionRight = cell.walls.right && relativeX >= this.maze.cellSize - this.radius;
+
+        // Check adjacent cells' walls when near corners
+        if (this.maze.isInBounds(row - 1, col) && relativeY <= this.radius) {
+            const topCell = this.maze.grid[row - 1][col];
+            collisionLeft = collisionLeft || (topCell.walls.left && relativeX <= this.radius);
+            collisionRight = collisionRight || (topCell.walls.right && relativeX >= this.maze.cellSize - this.radius);
+        }
+        if (this.maze.isInBounds(row + 1, col) && relativeY >= this.maze.cellSize - this.radius) {
+            const bottomCell = this.maze.grid[row + 1][col];
+            collisionLeft = collisionLeft || (bottomCell.walls.left && relativeX <= this.radius);
+            collisionRight = collisionRight || (bottomCell.walls.right && relativeX >= this.maze.cellSize - this.radius);
+        }
+        if (this.maze.isInBounds(row, col - 1) && relativeX <= this.radius) {
+            const leftCell = this.maze.grid[row][col - 1];
+            collisionTop = collisionTop || (leftCell.walls.top && relativeY <= this.radius);
+            collisionBottom = collisionBottom || (leftCell.walls.bottom && relativeY >= this.maze.cellSize - this.radius);
+        }
+        if (this.maze.isInBounds(row, col + 1) && relativeX >= this.maze.cellSize - this.radius) {
+            const rightCell = this.maze.grid[row][col + 1];
+            collisionTop = collisionTop || (rightCell.walls.top && relativeY <= this.radius);
+            collisionBottom = collisionBottom || (rightCell.walls.bottom && relativeY >= this.maze.cellSize - this.radius);
+        }
+
+        // Apply collision responses
+        if (collisionTop) {
             this.dy = Math.abs(this.dy);
         }
-        if (cell.walls.bottom && relativeY >= this.maze.cellSize - this.radius) {
+        if (collisionBottom) {
             this.dy = -Math.abs(this.dy);
         }
-        if (cell.walls.left && relativeX <= this.radius) {
+        if (collisionLeft) {
             this.dx = Math.abs(this.dx);
         }
-        if (cell.walls.right && relativeX >= this.maze.cellSize - this.radius) {
+        if (collisionRight) {
             this.dx = -Math.abs(this.dx);
         }
     }

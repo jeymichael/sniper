@@ -169,6 +169,39 @@ describe('Bullet Class', () => {
         expect(bullet.y).toBe(initialY + bullet.dy);
     });
 
+    test('handles corner wall collisions correctly', () => {
+        // Setup a specific wall configuration:
+        // Current cell (1,1) has no top and left walls
+        // Top cell (0,1) has left wall
+        // Left cell (1,0) has top wall
+        const currentCell = maze.grid[1][1];
+        currentCell.walls.top = false;
+        currentCell.walls.left = false;
+
+        const topCell = maze.grid[0][1];
+        topCell.walls.left = true;
+
+        const leftCell = maze.grid[1][0];
+        leftCell.walls.top = true;
+
+        // Position bullet near the top-left corner of cell (1,1)
+        bullet.x = maze.cellSize + bullet.radius; // Just right of the left wall
+        bullet.y = maze.cellSize + bullet.radius; // Just below the top wall
+        
+        // Set bullet direction towards the corner (-135 degrees or -3π/4 radians)
+        bullet.direction = -3 * Math.PI / 4;
+        bullet.dx = Math.cos(bullet.direction) * bullet.speed;
+        bullet.dy = Math.sin(bullet.direction) * bullet.speed;
+
+        // Update bullet position and check collision
+        bullet.update();
+
+        // The bullet should have bounced off the corner
+        // Either dx or dy (or both) should have changed direction
+        expect(bullet.dx !== Math.cos(-3 * Math.PI / 4) * bullet.speed || 
+               bullet.dy !== Math.sin(-3 * Math.PI / 4) * bullet.speed).toBe(true);
+    });
+
     test('isDead returns true after lifetime', () => {
         expect(bullet.isDead()).toBe(false);
         // Mock time passing beyond lifetime
