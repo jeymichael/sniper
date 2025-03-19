@@ -84,7 +84,6 @@ describe('Player Class', () => {
         player.y = 15;
         expect(player.canMove(15, 15)).toBe(true);
         expect(player.hasExited).toBe(true);
-        expect(Settings.getInstance().hasExited).toBe(true);
     });
 
     test('rotation methods work correctly', () => {

@@ -179,9 +179,6 @@ class Settings {
         this.playerRadius = 5;
         this.playerSpeed = 5;
         this.rotationSpeed = Math.PI/32;
-
-        // Game state
-        this.hasExited = false;
     }
 
     static getInstance() {
@@ -329,7 +326,6 @@ class Player {
         // Check if player is at exit (top-left)
         if (this.y <= this.maze.cellSize && this.x <= this.maze.cellSize) {
             this.hasExited = true;
-            Settings.getInstance().hasExited = true;
             this.playExitSound();
             return true;
         }
