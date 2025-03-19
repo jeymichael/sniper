@@ -607,17 +607,6 @@ class Maze {
     }
 }
 
-// Update exports
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = {
-        Player,
-        Cell,
-        Bullet,
-        Settings,
-        Maze
-    };
-}
-
 // Update canvas size using Config
 if (typeof document !== 'undefined') {
     canvas.width = Config.CANVAS_WIDTH;
@@ -860,17 +849,20 @@ class GameBoard {
     update() {
         const currentTime = Date.now();
         
-        // Create first BugNest after initial delay
-        if (this.bugNests.length === 0 && 
-            currentTime - this.gameStartTime >= Config.BUGNEST_CREATION_DELAY) {
-            this.bugNests.push(new BugNest(this.maze));
-            this.lastNestCreationTime = currentTime;
-        }
-        
-        // Create additional BugNests at regular intervals
-        if (currentTime - this.lastNestCreationTime >= Config.BUGNEST_CREATION_INTERVAL) {
-            this.bugNests.push(new BugNest(this.maze));
-            this.lastNestCreationTime = currentTime;
+        // Only create nests if player is alive and hasn't exited
+        if (!this.player.isDead && !this.player.hasExited && !this.player.isRemoved) {
+            // Create first BugNest after initial delay
+            if (this.bugNests.length === 0 && 
+                currentTime - this.gameStartTime >= Config.BUGNEST_CREATION_DELAY) {
+                this.bugNests.push(new BugNest(this.maze));
+                this.lastNestCreationTime = currentTime;
+            }
+            
+            // Create additional BugNests at regular intervals
+            if (currentTime - this.lastNestCreationTime >= Config.BUGNEST_CREATION_INTERVAL) {
+                this.bugNests.push(new BugNest(this.maze));
+                this.lastNestCreationTime = currentTime;
+            }
         }
 
         if (this.rotationState.clockwise) {
@@ -941,6 +933,19 @@ class GameBoard {
             document.getElementById('radiusValue').textContent = newRadius.toFixed(0);
         }
     }
+}
+
+// Update exports
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = {
+        Player,
+        Cell,
+        Bullet,
+        Settings,
+        Maze,
+        GameBoard,
+        Config
+    };
 }
 
 // Update initialization code

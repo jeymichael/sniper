@@ -22,6 +22,7 @@ const mockCanvas = {
     height: 300
 };
 
+// Setup global mocks first
 global.document = {
     getElementById: () => mockCanvas,
     addEventListener: jest.fn(),
@@ -47,8 +48,13 @@ global.window = {
 };
 global.requestAnimationFrame = window.requestAnimationFrame;
 
-// Import the classes (you'll need to export them from maze.js)
-const { Player, Cell, Bullet, Settings, Maze } = require('./maze.js');
+// Import the classes after setting up the environment
+const { Player, Cell, Bullet, Settings, Maze, GameBoard, Config } = require('./maze.js');
+
+// Log Config to verify it's imported correctly
+console.log('Config class:', Config);
+console.log('BUGNEST_CREATION_DELAY:', Config.BUGNEST_CREATION_DELAY);
+console.log('BUGNEST_CREATION_INTERVAL:', Config.BUGNEST_CREATION_INTERVAL);
 
 describe('Player Class', () => {
     let player;
@@ -420,6 +426,71 @@ describe('Maze.findPath', () => {
                 expect(maze.grid[next.row][next.col].walls.left).toBe(false);
             }
         }
+    });
+});
+
+describe('GameBoard Class', () => {
+    let gameBoard;
+    let currentTime;
+    
+    beforeEach(() => {
+        Settings.instance = null;
+        currentTime = 0;
+        // Mock Date.now to return our controlled time
+        jest.spyOn(Date, 'now').mockImplementation(() => currentTime);
+        gameBoard = new GameBoard(mockCanvas);
+        jest.clearAllTimers();
+    });
+
+    test('stops creating BugNests when player dies', () => {
+        // Fast forward to first nest creation
+        currentTime = Config.BUGNEST_CREATION_DELAY
+        gameBoard.update();
+        expect(gameBoard.bugNests.length).toBe(1);
+
+        // Kill the player
+        gameBoard.player.die();
+        
+        // Fast forward to when next nest would be created
+        currentTime = Config.BUGNEST_CREATION_DELAY + Config.BUGNEST_CREATION_INTERVAL
+        gameBoard.update();
+        
+        // Verify no new nests were created
+        expect(gameBoard.bugNests.length).toBe(1);
+    });
+
+    test('stops creating BugNests when player exits', () => {
+        // Fast forward to first nest creation
+        currentTime = Config.BUGNEST_CREATION_DELAY
+        gameBoard.update();
+        expect(gameBoard.bugNests.length).toBe(1);
+
+        // Make player exit
+        gameBoard.player.hasExited = true;
+        
+        // Fast forward to when next nest would be created
+        currentTime = Config.BUGNEST_CREATION_DELAY + Config.BUGNEST_CREATION_INTERVAL
+        gameBoard.update();
+        
+        // Verify no new nests were created
+        expect(gameBoard.bugNests.length).toBe(1);
+    });
+
+    test('stops creating BugNests when player is removed', () => {
+        // Fast forward to first nest creation
+        currentTime = Config.BUGNEST_CREATION_DELAY
+        gameBoard.update();
+        expect(gameBoard.bugNests.length).toBe(1);
+
+        // Remove player
+        gameBoard.player.isRemoved = true;
+        
+        // Fast forward to when next nest would be created
+        currentTime = Config.BUGNEST_CREATION_DELAY + Config.BUGNEST_CREATION_INTERVAL
+        gameBoard.update();
+        
+        // Verify no new nests were created
+        expect(gameBoard.bugNests.length).toBe(1);
     });
 });
 
