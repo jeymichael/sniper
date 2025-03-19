@@ -3,10 +3,11 @@ class Config {
     static get CELL_SIZE() { return 30; }
     static get BULLET_SPACING() { return 25; }
     static get MAX_BULLETS() { return 100; }
-    static get CANVAS_WIDTH() { return 300; }
-    static get CANVAS_HEIGHT() { return 300; }
-    static get ROWS() { return Math.floor(this.CANVAS_HEIGHT / this.CELL_SIZE); }
-    static get COLS() { return Math.floor(this.CANVAS_WIDTH / this.CELL_SIZE); }
+    static get MAZE_WIDTH() { return 300; }
+    static get MAZE_HEIGHT() { return 300; }
+    static get SCORE_AREA_HEIGHT() { return 40; } // Height of the score display area
+    static get ROWS() { return Math.floor(this.MAZE_HEIGHT / this.CELL_SIZE); }
+    static get COLS() { return Math.floor(this.MAZE_WIDTH / this.CELL_SIZE); }
     
     // Add bug-related constants
     static get BUG_SPAWN_TIME() { return 5000; }  // 5 seconds in milliseconds
@@ -108,15 +109,6 @@ class Config {
     }
 }
 
-const canvas = document.getElementById('mazeCanvas');
-const ctx = canvas.getContext('2d');
-
-// Set canvas size
-canvas.width = Config.CANVAS_WIDTH;
-canvas.height = Config.CANVAS_HEIGHT;
-let animationId;
-
-
 // Cell class to represent each position in the maze
 class Cell {
     constructor(row, col) {
@@ -131,7 +123,10 @@ class Cell {
         this.visited = false;
     }
 
-    draw() {
+    draw(ctx) {
+        // Skip drawing if no context is provided (test environment)
+        if (!ctx) return;
+
         const x = this.col * Config.CELL_SIZE;
         const y = this.row * Config.CELL_SIZE;
 
@@ -211,7 +206,10 @@ class Bullet {
         this.opacity = 1.0;
     }
 
-    draw() {
+    draw(ctx) {
+        // Skip drawing if no context is provided (test environment)
+        if (!ctx) return;
+        
         const age = Date.now() - this.birthTime;
         const lifePercent = age / this.settings.bulletLifetime;
         
@@ -268,8 +266,8 @@ class Player {
         this.maze = maze;
         
         // Start at the center of entrance cell (bottom-right)
-        this.x = this.maze.canvas.width - this.maze.cellSize/2;
-        this.y = this.maze.canvas.height - this.maze.cellSize/2;
+        this.x = Config.MAZE_WIDTH - Config.CELL_SIZE/2;
+        this.y = Config.MAZE_HEIGHT - Config.CELL_SIZE/2;
         
         // Get settings from singleton
         const settings = Settings.getInstance();
@@ -285,7 +283,7 @@ class Player {
         this.deathSound = Config.PLAYER_DEATH_SOUND;
     }
 
-    draw() {
+    draw(ctx) {
         // Don't draw if player is removed
         if (this.isRemoved) {
             return;
@@ -299,10 +297,10 @@ class Player {
         ctx.closePath();
 
         // Draw direction arrow using player's direction
-        this.drawDirectionArrow(this.direction);
+        this.drawDirectionArrow(ctx, this.direction);
     }
 
-    drawDirectionArrow(direction) {
+    drawDirectionArrow(ctx, direction) {
         const startX = this.x;
         const startY = this.y;
         const endX = startX + Math.cos(direction) * this.arrowLength;
@@ -361,8 +359,8 @@ class Player {
         };
 
         // Check if any part of the player would be outside the maze
-        if (bounds.left < 0 || bounds.right > this.maze.canvas.width ||
-            bounds.top < 0 || bounds.bottom > this.maze.canvas.height) {
+        if (bounds.left < 0 || bounds.right > this.maze.width ||
+            bounds.top < 0 || bounds.bottom > this.maze.height) {
             return false;
         }
 
@@ -458,6 +456,8 @@ class Maze {
         this.cellSize = Config.CELL_SIZE;
         this.rows = Config.ROWS;     // Use Config class
         this.cols = Config.COLS;     // Use Config class
+        this.width = Config.MAZE_WIDTH;
+        this.height = Config.MAZE_HEIGHT;
         this.grid = [];
         
         this.setupGrid();
@@ -528,35 +528,7 @@ class Maze {
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.cols; col++) {
                 const cell = this.grid[row][col];
-                const x = col * this.cellSize;
-                const y = row * this.cellSize;
-
-                this.ctx.strokeStyle = '#000';
-                this.ctx.beginPath();
-
-                if (cell.walls.top) {
-                    this.ctx.moveTo(x, y);
-                    this.ctx.lineTo(x + this.cellSize, y);
-                }
-                if (cell.walls.right) {
-                    this.ctx.moveTo(x + this.cellSize, y);
-                    this.ctx.lineTo(x + this.cellSize, y + this.cellSize);
-                }
-                if (cell.walls.bottom) {
-                    this.ctx.moveTo(x + this.cellSize, y + this.cellSize);
-                    this.ctx.lineTo(x, y + this.cellSize);
-                }
-                if (cell.walls.left) {
-                    this.ctx.moveTo(x, y + this.cellSize);
-                    this.ctx.lineTo(x, y);
-                }
-
-                this.ctx.stroke();
-
-                if (cell.visited) {
-                    this.ctx.fillStyle = 'rgba(0, 255, 0, 0.1)';
-                    this.ctx.fillRect(x, y, this.cellSize, this.cellSize);
-                }
+                cell.draw(this.ctx);
             }
         }
     }
@@ -606,13 +578,6 @@ class Maze {
         return null; // No path found
     }
 }
-
-// Update canvas size using Config
-if (typeof document !== 'undefined') {
-    canvas.width = Config.CANVAS_WIDTH;
-    canvas.height = Config.CANVAS_HEIGHT;
-}
-
 
 class Bug {
     constructor(x, y, maze) {
@@ -891,17 +856,20 @@ class GameBoard {
         this.maze.draw();
         // Draw all nests
         this.bugNests.forEach(nest => nest.draw(this.ctx));
-        this.player.draw();
+        this.player.draw(this.ctx);
         
         this.bullets.forEach(bullet => {
-            bullet.draw();
+            bullet.draw(this.ctx);
         });
 
-        // Draw score only if not in test environment
+        // Draw score in the dedicated score area
         if (typeof document !== 'undefined') {
             this.ctx.fillStyle = 'black';
-            this.ctx.font = '16px Arial';
-            this.ctx.fillText(`Score: ${this.score}`, 10, 20);
+            this.ctx.font = '20px Arial';
+            this.ctx.textAlign = 'center';
+            // Position the score in the middle of the score area
+            const scoreY = Config.MAZE_HEIGHT + (Config.SCORE_AREA_HEIGHT / 2) + 8; // +8 for vertical text alignment
+            this.ctx.fillText(`Score: ${this.score}`, Config.MAZE_WIDTH / 2, scoreY);
         }
     }
 
@@ -948,18 +916,29 @@ if (typeof module !== 'undefined' && module.exports) {
     };
 }
 
-// Update initialization code
-const gameBoard = new GameBoard(canvas);
+// Declare gameBoard in global scope
+let gameBoard;
 
-// Update drawMaze function to use GameBoard
-function drawMaze() {
-    gameBoard.update();
-    gameBoard.draw();
-    animationId = requestAnimationFrame(drawMaze);
-}
-
-// Update event listeners to use GameBoard
+// Initialize game only in browser environment
 if (typeof document !== 'undefined') {
+    // Initialize canvas
+    const canvas = document.getElementById('mazeCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = Config.MAZE_WIDTH;
+    canvas.height = Config.MAZE_HEIGHT + Config.SCORE_AREA_HEIGHT;
+    let animationId;
+
+    // Initialize game
+    gameBoard = new GameBoard(canvas);
+
+    // Update drawMaze function to use GameBoard
+    function drawMaze() {
+        gameBoard.update();
+        gameBoard.draw();
+        animationId = requestAnimationFrame(drawMaze);
+    }
+
+    // Update event listeners to use GameBoard
     document.addEventListener('keypress', (e) => {
         if (e.key === 'r' || e.key === 'R') {
             gameBoard.initializeFirstBullet();
@@ -1002,7 +981,7 @@ if (typeof document !== 'undefined') {
             }
         }
     });
-}
 
-// Start the game
-drawMaze(); 
+    // Start the game
+    drawMaze();
+} 
