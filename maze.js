@@ -688,23 +688,23 @@ class Bug {
 }
 
 class BugNest {
-    constructor(maze) {
+    constructor(maze, playerX, playerY) {
         this.maze = maze;
         this.bugs = [];
         this.lastSpawnTime = Date.now();
         
-        // Find a valid position on the path from entrance to exit
-        const startRow = this.maze.rows - 1;
-        const startCol = this.maze.cols - 1;
+        // Find a valid position on the path from player's current position to exit
+        const startRow = Math.floor(playerY / maze.cellSize);
+        const startCol = Math.floor(playerX / maze.cellSize);
         const endRow = 0;
         const endCol = 0;
         
         const path = this.maze.findPath(startRow, startCol, endRow, endCol);
         if (path) {
-            // Choose a random position from the middle third of the path
-            const startIndex = Math.floor(path.length / 3);
-            const endIndex = Math.floor(2 * path.length / 3);
-            const randomIndex = startIndex + Math.floor(Math.random() * (endIndex - startIndex));
+            // Choose a random position from the first third of the path
+            // This will be closer to the Player's current position
+            const endIndex = Math.floor(path.length / 3);
+            const randomIndex = Math.floor(Math.random() * endIndex);
             const position = path[randomIndex];
             
             // Convert grid position to pixel coordinates (center of cell)
@@ -715,7 +715,7 @@ class BugNest {
             do {
                 const row = Math.floor(Math.random() * maze.rows);
                 const col = Math.floor(Math.random() * maze.cols);
-                if (row !== maze.rows - 1 || col !== maze.cols - 1) {
+                if (row !== startRow || col !== startCol) {
                     this.x = col * maze.cellSize + maze.cellSize / 2;
                     this.y = row * maze.cellSize + maze.cellSize / 2;
                     break;
@@ -873,13 +873,13 @@ class GameBoard {
             // Create first BugNest after initial delay
             if (this.bugNests.length === 0 && 
                 currentTime - this.gameStartTime >= Config.BUGNEST_CREATION_DELAY) {
-                this.bugNests.push(new BugNest(this.maze));
+                this.bugNests.push(new BugNest(this.maze, this.player.x, this.player.y));
                 this.lastNestCreationTime = currentTime;
             }
             
             // Create additional BugNests at regular intervals
             if (currentTime - this.lastNestCreationTime >= Config.BUGNEST_CREATION_INTERVAL) {
-                this.bugNests.push(new BugNest(this.maze));
+                this.bugNests.push(new BugNest(this.maze, this.player.x, this.player.y));
                 this.lastNestCreationTime = currentTime;
             }
         }
