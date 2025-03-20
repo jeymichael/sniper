@@ -197,13 +197,18 @@ class Bullet {
         this.radius = settings.bulletRadius;
         this.speed = settings.bulletSpeed;
         
-        this.direction = direction;
-        this.dx = Math.cos(this.direction) * this.speed;
-        this.dy = Math.sin(this.direction) * this.speed;
+        // Initialize dx and dy directly from direction
+        this.dx = Math.cos(direction) * this.speed;
+        this.dy = Math.sin(direction) * this.speed;
 
         this.birthTime = Date.now();
         this.settings = Settings.getInstance();
         this.opacity = 1.0;
+    }
+
+    // Add getter for direction
+    get direction() {
+        return Math.atan2(this.dy, this.dx);
     }
 
     draw(ctx) {
@@ -270,7 +275,6 @@ class Bullet {
         }
 
         // Apply collision responses
-        // Remove direction updates from collision responses above and update once here
         if (collisionTop && collisionLeft) {
             // Top-left corner collision
             this.dx = Math.abs(this.dx);
@@ -296,11 +300,6 @@ class Bullet {
             this.dx = Math.abs(this.dx);
         } else if (collisionRight) {
             this.dx = -Math.abs(this.dx);
-        }
-
-        // Update direction once after all collision responses
-        if (collisionTop || collisionBottom || collisionLeft || collisionRight) {
-            this.direction = Math.atan2(this.dy, this.dx);
         }
     }
 

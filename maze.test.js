@@ -211,17 +211,14 @@ describe('Bullet Class', () => {
 
     test('handles top-left corner wall collisions', () => {
         const maze = new Maze(mockCanvas);
-        const bullet = new Bullet(Config.CELL_SIZE * 1.5, Config.CELL_SIZE * 1.5, Math.PI / 4, maze);
+        // closer to top & left walls with direction -135 degrees, pointing towards top-left corner
+        const bullet = new Bullet(Config.CELL_SIZE * 1.01, Config.CELL_SIZE * 1.01, -3*Math.PI/4, maze);
         
         // Set up a corner where adjacent cells have walls
         maze.grid[1][1].walls = { top: false, right: true, bottom: true, left: false };
         maze.grid[0][1].walls = { top: true, right: true, bottom: false, left: true };
         maze.grid[1][0].walls = { top: true, right: false, bottom: true, left: true };
         
-        // Position bullet very close to top-left corner of cell (1,1)
-        bullet.x = Config.CELL_SIZE * 1.01; // Much closer to left wall
-        bullet.y = Config.CELL_SIZE * 1.01; // Much closer to top wall
-        bullet.direction = -3*Math.PI/4; // pointing towards top-left corner
         bullet.dx = Math.cos(bullet.direction) * bullet.speed;
         bullet.dy = Math.sin(bullet.direction) * bullet.speed;
         
@@ -238,17 +235,14 @@ describe('Bullet Class', () => {
 
     test('handles top-right corner wall collisions', () => {
         const maze = new Maze(mockCanvas);
-        const bullet = new Bullet(Config.CELL_SIZE * 1.5, Config.CELL_SIZE * 1.5, -Math.PI / 4, maze);
+        // closer to top & right walls with direction -45 degrees, pointing towards top-right corner
+        const bullet = new Bullet(Config.CELL_SIZE * 1.99, Config.CELL_SIZE * 1.01, -Math.PI / 4, maze);
         
         // Set up a corner where adjacent cells have walls
         maze.grid[1][1].walls = { top: false, right: false, bottom: true, left: true };
         maze.grid[0][1].walls = { top: true, right: true, bottom: false, left: true };
         maze.grid[1][2].walls = { top: true, right: true, bottom: true, left: false };
         
-        // Position bullet very close to top-right corner of cell (1,1)
-        bullet.x = Config.CELL_SIZE * 1.99; // Much closer to right wall
-        bullet.y = Config.CELL_SIZE * 1.01; // Much closer to top wall
-        bullet.direction = -Math.PI / 4; // -45 degrees, pointing towards top-right corner
         bullet.dx = Math.cos(bullet.direction) * bullet.speed;
         bullet.dy = Math.sin(bullet.direction) * bullet.speed;
         
@@ -265,17 +259,14 @@ describe('Bullet Class', () => {
 
     test('handles bottom-left corner wall collisions', () => {
         const maze = new Maze(mockCanvas);
-        const bullet = new Bullet(Config.CELL_SIZE * 1.5, Config.CELL_SIZE * 1.5, 3 * Math.PI / 4, maze);
+        // closer to left & bottom walls with direction 135 degrees, pointing towards bottom-left corner
+        const bullet = new Bullet(Config.CELL_SIZE * 1.01, Config.CELL_SIZE * 1.99, 3 * Math.PI / 4, maze);
         
         // Set up a corner where adjacent cells have walls
         maze.grid[1][1].walls = { top: true, right: true, bottom: false, left: false };
         maze.grid[2][1].walls = { top: false, right: true, bottom: true, left: true };
         maze.grid[1][0].walls = { top: true, right: false, bottom: true, left: true };
         
-        // Position bullet very close to bottom-left corner of cell (1,1)
-        bullet.x = Config.CELL_SIZE * 1.01; // Much closer to left wall
-        bullet.y = Config.CELL_SIZE * 1.99; // Much closer to bottom wall
-        bullet.direction = 3 * Math.PI / 4; // 135 degrees, pointing towards bottom-left corner
         bullet.dx = Math.cos(bullet.direction) * bullet.speed;
         bullet.dy = Math.sin(bullet.direction) * bullet.speed;
         
@@ -292,7 +283,8 @@ describe('Bullet Class', () => {
 
     test('handles bottom-right corner wall collisions', () => {
         const maze = new Maze(mockCanvas);
-        const bullet = new Bullet(Config.CELL_SIZE * 1.5, Config.CELL_SIZE * 1.5, -3 * Math.PI / 4, maze);
+        // closer to right & bottom walls with direction -135 degrees, pointing towards bottom-right corner
+        const bullet = new Bullet(Config.CELL_SIZE * 1.99, Config.CELL_SIZE * 1.99, -Math.PI / 4, maze);
         
         // Set up a corner where adjacent cells have walls
         maze.grid[1][1].walls = { top: true, right: false, bottom: false, left: true };
@@ -300,9 +292,9 @@ describe('Bullet Class', () => {
         maze.grid[1][2].walls = { top: true, right: true, bottom: true, left: false };
         
         // Position bullet very close to bottom-right corner of cell (1,1)
-        bullet.x = Config.CELL_SIZE * 1.99; // Much closer to right wall
-        bullet.y = Config.CELL_SIZE * 1.99; // Much closer to bottom wall
-        bullet.direction = -3 * Math.PI / 4; // -135 degrees, pointing towards bottom-right corner
+        //bullet.x = Config.CELL_SIZE * 1.99; // Much closer to right wall
+        //bullet.y = Config.CELL_SIZE * 1.99; // Much closer to bottom wall
+        //bullet.direction = -3 * Math.PI / 4; // -135 degrees, pointing towards bottom-right corner
         bullet.dx = Math.cos(bullet.direction) * bullet.speed;
         bullet.dy = Math.sin(bullet.direction) * bullet.speed;
         
